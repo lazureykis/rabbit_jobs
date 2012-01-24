@@ -1,4 +1,9 @@
-source 'https://rubygems.org'
+source :rubygems
 
-# Specify your gem's dependencies in rabbit_jobs.gemspec
 gemspec
+
+gem 'rabbit_jobs', :path => './'
+
+group :development do
+  gem 'rspec', '~> 2.8'
+end
