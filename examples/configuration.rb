@@ -17,5 +17,5 @@ puts JSON.pretty_generate(RabbitJobs.config.to_hash)
 puts JSON.pretty_generate(RabbitJobs.config.queues)
 
 # 10.times {
-  RabbitJobs.enqueue_to('rabbit_jobs_test1', Integer)
+  RabbitJobs.enqueue_to('rabbit_jobs_test1', Integer, 'to_s')
 # }
