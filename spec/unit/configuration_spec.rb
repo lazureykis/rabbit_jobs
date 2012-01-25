@@ -2,6 +2,10 @@
 require 'spec_helper'
 
 describe RabbitJobs::Configuration do
+  before(:each) do
+    RabbitJobs.class_variable_set '@@configuration', nil
+  end
+
   it 'builds configuration from configure block' do
     RabbitJobs.configure do |c|
       c.host "somehost.lan"
@@ -56,6 +60,22 @@ describe RabbitJobs::Configuration do
           durable: false,
           auto_delete: true,
           ack: false
+        }
+      }
+    }
+  end
+
+  it 'use default config' do
+    RabbitJobs.config.to_hash.should == {
+      host: "localhost",
+      exchange: "rabbit_jobs",
+      exchange_params: {
+        auto_delete: true
+      },
+      queues: {
+        "default" => {
+          auto_delete: true,
+          ack: true
         }
       }
     }

@@ -15,6 +15,8 @@ module RabbitJobs
   def self.load_config
     self.configure do |c|
       c.host 'localhost'
+      c.exchange 'rabbit_jobs', auto_delete: true
+      c.queue 'default', auto_delete: true, ack: true
     end
     @@configuration
   end
@@ -52,10 +54,7 @@ module RabbitJobs
       @data = {
         host: 'localhost',
         exchange: 'rabbit_jobs',
-        exchange_params: {
-          auto_delete: true,
-          durable: false
-        },
+        exchange_params: {},
         queues: {}
       }
     end
@@ -128,6 +127,7 @@ module RabbitJobs
       if yaml['rabbit_jobs']
         convert_yaml_config(yaml['rabbit_jobs'])
       else
+        @data = {host: nil, exchange: nil, queues: {}}
         host yaml['host']
         exchange yaml['exchange'], Helpers.symbolize_keys(yaml['exchange_params'])
         yaml['queues'].each { |name, params|
