@@ -12,4 +12,8 @@ module RabbitJobs
   def enqueue(klass, *params)
     RabbitJobs::Publisher.enqueue(klass, params)
   end
+
+  def enqueue_to(routing_key, klass, *params)
+    RabbitJobs::Publisher.enqueue_to(routing_key, params)
+  end
 end

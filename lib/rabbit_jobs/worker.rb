@@ -10,12 +10,11 @@ module RabbitJobs
       # todo: register signals
 
       host = Configuration.host
-      queue_name = Configuration.queue_name
+      # queue_name = Configuration.queue_name
       queue_params = Configuration.queue_params
       exchange_name = Configuration.exchange_name
       exchange_params = Configuration.exchange_params
       publish_params = Configuration.publish_params
-      routing_key = Configuration.routing_key
 
       channel_exception_handler = Proc.new { |ch, channel_close| EM.stop; raise "channel error: #{channel_close.reply_text}" }
 
@@ -31,12 +30,21 @@ module RabbitJobs
         channel.on_error(&channel_exception_handler)
 
         exchange = channel.direct(exchange_name, exchange_params)
-        queue    = channel.queue(queue_name, queue_params).bind(exchange, :routing_key => routing_key)
 
-        queue.subscribe(ack: true) do |metadata, payload|
-          # TODO: handle exceptions, requeue in some minutes, locks
-          run_job()
-          metadata.ack
+        # create queues and subscribe
+        queues = []
+        Configuration.queues.each do |routing_key|
+          queue_name = Configuration.queue_name(routing_key)
+          queue = channel.queue(queue_name, queue_params).bind(exchange, :routing_key => routing_key)
+
+          queue.subscribe(ack: true) do |metadata, payload|
+            # TODO: handle exceptions, requeue in some minutes, locks
+            # run_job(payload)
+            puts payload
+            metadata.ack
+          end
+
+          queues << queue
         end
 
         EM.add_timer(5.5) do
@@ -47,7 +55,8 @@ module RabbitJobs
           if @shutdown
             puts "Cancelled default consumer..."
             connection.close { EM.stop }
-            # queue.unsubscribe do
+            # queues.each ->  unsubscribe do
+            #   # after all subscribers stopped
             #   connection.close { EM.stop }
             # end
           end
