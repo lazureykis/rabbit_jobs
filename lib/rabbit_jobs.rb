@@ -1,6 +1,7 @@
 # -*- encoding : utf-8 -*-
 
 require 'rabbit_jobs/version'
+require 'rabbit_jobs/helpers'
 require 'rabbit_jobs/configuration'
 require 'rabbit_jobs/logger'
 require 'rabbit_jobs/publisher'

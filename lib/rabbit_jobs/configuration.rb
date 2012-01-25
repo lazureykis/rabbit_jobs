@@ -1,4 +1,5 @@
 # -*- encoding : utf-8 -*-
+require 'yaml'
 
 module RabbitJobs
 
@@ -59,10 +60,6 @@ module RabbitJobs
       }
     end
 
-    def inspect
-      @data.inspect
-    end
-
     def [](name)
       @data[name]
     end
@@ -111,12 +108,32 @@ module RabbitJobs
       [@data[:exchange], routing_key].join('#')
     end
 
+    def load_file(filename)
+      load_yaml(File.read(filename))
+    end
+
+    def load_yaml(text)
+      convert_yaml_config(YAML.load(text))
+    end
+
     def publish_params
       {
         persistent: true,
         nowait: false,
         # immediate: true
       }
+    end
+
+    def convert_yaml_config(yaml)
+      if yaml['rabbit_jobs']
+        convert_yaml_config(yaml['rabbit_jobs'])
+      else
+        host yaml['host']
+        exchange yaml['exchange'], Helpers.symbolize_keys(yaml['exchange_params'])
+        yaml['queues'].each { |name, params|
+          queue name, Helpers.symbolize_keys(params)
+        }
+      end
     end
   end
 end

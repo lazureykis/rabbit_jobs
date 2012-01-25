@@ -55,10 +55,6 @@ module RabbitJobs
           if @shutdown
             puts "Cancelled default consumer..."
             connection.close { EM.stop }
-            # queues.each ->  unsubscribe do
-            #   # after all subscribers stopped
-            #   connection.close { EM.stop }
-            # end
           end
         end
       end

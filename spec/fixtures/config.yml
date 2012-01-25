@@ -1,0 +1,17 @@
+rabbit_jobs:
+  host: example.com
+  exchange: 'my_exchange'
+  exchange_params:
+    durable: true
+    auto_delete: false
+  queues:
+    durable_queue:
+      durable: true
+      auto_delete: false
+      ack: true
+      arguments:
+        x-ha-policy: all
+    fast_queue:
+      durable: false
+      auto_delete: true
+      ack: false
