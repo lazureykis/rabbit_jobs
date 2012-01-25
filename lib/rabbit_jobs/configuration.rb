@@ -95,7 +95,7 @@ module RabbitJobs
       end
     end
 
-    def queues
+    def routing_keys
       @data[:queues].keys
     end
 
