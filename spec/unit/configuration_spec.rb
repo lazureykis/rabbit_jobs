@@ -80,4 +80,12 @@ describe RabbitJobs::Configuration do
       }
     }
   end
+
+  it 'returns settings on some methods' do
+    RabbitJobs.config.host.should == 'localhost'
+    RabbitJobs.config[:host].should == 'localhost'
+    RabbitJobs.config.queues.should == ['default']
+    RabbitJobs.config.exchange.should == 'rabbit_jobs'
+    RabbitJobs.config.queue_name('default').should == 'rabbit_jobs#default'
+  end
 end

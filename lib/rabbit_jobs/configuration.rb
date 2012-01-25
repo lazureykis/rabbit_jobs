@@ -63,10 +63,6 @@ module RabbitJobs
       @data[name]
     end
 
-    def []=(name, value)
-      @data[name] = value
-    end
-
     def host(value = nil)
       if value
         raise ArgumentError unless value.is_a?(String) && value != ""
