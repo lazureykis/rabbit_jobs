@@ -37,7 +37,8 @@ module RabbitJobs
     def self.publish_params
       {
         persistent: true,
-        nowait: false
+        nowait: false,
+        # immediate: true
       }
     end
   end
