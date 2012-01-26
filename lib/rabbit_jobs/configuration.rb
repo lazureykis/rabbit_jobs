@@ -3,16 +3,18 @@ require 'yaml'
 
 module RabbitJobs
 
-  def self.configure(&block)
+  extend self
+
+  def configure(&block)
     @@configuration ||= Configuration.new
     block.call(@@configuration)
   end
 
-  def self.config
+  def config
     @@configuration ||= load_config
   end
 
-  def self.load_config
+  def load_config
     self.configure do |c|
       c.host 'localhost'
       c.exchange 'rabbit_jobs', auto_delete: true
@@ -22,28 +24,11 @@ module RabbitJobs
   end
 
   class Configuration
-    # DEFAULT_PARAMS = {
-    #   host: 'localhost',
-    #   exchange: 'rabbit_jobs',
-    #   queue: {
-    #     auto_delete: true,
-    #     ack: true
-    #     # auto_delete: false,
-    #     # ack: true,
-    #     # durable: true,
-    #     # arguments: {'x-ha-policy' => 'all'}
-    #   },
-    #   # exchange: {
-    #   #   durable: true,
-    #   #   auto_delete: false
-    #   # },
-    # }
+    include Helpers
 
     DEFAULT_QUEUE_PARAMS = {
       auto_delete: true,
-      ack: true,
-      # durable: true,
-      # arguments: {'x-ha-policy' => 'all'}
+      ack: true
     }
 
     def to_hash
@@ -85,8 +70,8 @@ module RabbitJobs
     end
 
     def queue(name, params = {})
-      raise ArgumentError.new("name is #{name}.inspect") unless name && name.is_a?(String) && name != ""
-      raise ArgumentError.new("params is #{params}.inspect") unless params && params.is_a?(Hash)
+      raise ArgumentError.new("name is #{name.inspect}") unless name && name.is_a?(String) && name != ""
+      raise ArgumentError.new("params is #{params.inspect}") unless params && params.is_a?(Hash)
 
       if @data[:queues][name]
         @data[:queues][name].merge!(params)
@@ -125,10 +110,10 @@ module RabbitJobs
       else
         @data = {host: nil, exchange: nil, queues: {}}
         host yaml['host']
-        exchange yaml['exchange'], Helpers.symbolize_keys(yaml['exchange_params'])
-        yaml['queues'].each { |name, params|
-          queue name, Helpers.symbolize_keys(params)
-        }
+        exchange yaml['exchange'], symbolize_keys!(yaml['exchange_params'])
+        yaml['queues'].each do |name, params|
+          queue name, symbolize_keys!(params) || {}
+        end
       end
     end
   end
