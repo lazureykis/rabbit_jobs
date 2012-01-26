@@ -35,5 +35,11 @@ module RabbitJobs
         block.call(connection, queue)
       end
     end
+
+    def make_queue(exchange, routing_key)
+      queue = exchange.channel.queue(RabbitJobs.config.queue_name(routing_key), RabbitJobs.config[:queues][routing_key])
+      queue.bind(exchange, :routing_key => routing_key)
+      queue
+    end
   end
 end

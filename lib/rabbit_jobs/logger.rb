@@ -1,4 +1,9 @@
 module RabbitJobs
-  class Logger
+  module Logger
+    extend self
+
+    def log(string)
+      puts string
+    end
   end
 end

@@ -2,27 +2,70 @@
 
 module RabbitJobs
   class Worker
-    extend AmqpHelpers
+    include AmqpHelpers
+
+    # Workers should be initialized with an array of string queue
+    # names. The order is important: a Worker will check the first
+    # queue given for a job. If none is found, it will check the
+    # second queue name given. If a job is found, it will be
+    # processed. Upon completion, the Worker will again check the
+    # first queue given, and so forth. In this way the queue list
+    # passed to a Worker on startup defines the priorities of queues.
+    #
+    # If passed a single "*", this Worker will operate on all queues
+    # in alphabetical order. Queues can be dynamically added or
+    # removed without needing to restart workers using this method.
+    def initialize(*queues)
+      @queues = queues.map { |queue| queue.to_s.strip }
+      validate_queues
+    end
+
+    def queues
+      @queues.map {|queue| queue == "*" ? RabbitJobs.config.routing_keys.sort : queue }.flatten.uniq
+    end
+
+    # A worker must be given a queue, otherwise it won't know what to
+    # do with itself.
+    #
+    # You probably never need to call this.
+    def validate_queues
+      if @queues.nil? || @queues.empty?
+        raise NoQueueError.new("Please give each worker at least one queue.")
+      end
+    end
 
     # Subscribes to channel and working on jobs
-    def run_loop
+    def work
+      puts "pid: #{Process.pid}"
       @shutdown = false
 
-      # todo: register signals
+      trap('TERM') { shutdown }
+      trap('INT')  { shutdown! }
 
       amqp_with_exchange do |connection, exchange|
-        Configuration.queues.each do |routing_key|
-          queue_name = Configuration.queue_name(routing_key)
-          queue = channel.queue(queue_name, queue_params).bind(exchange, :routing_key => routing_key)
+        queues.each do |routing_key|
+          queue = make_queue(exchange, routing_key)
 
           queue.subscribe(ack: true) do |metadata, payload|
-            # TODO: handle exceptions, requeue in some minutes, locks
-            # run_job(payload)
-            puts payload
-            metadata.ack
+            puts "got: #{payload}"
+            if payload =~ /SHUTDOWN/
+              shutdown
+              puts "shutting down"
+            else
+              job = Job.new(payload)
+              job.perform
+              # JobRunner.perform(payload)
+            end
+            # if @child = fork
+            #   srand # Reseeding
+            #   puts "Forked #{@child} at #{Time.now.to_i} to process #{payload}"
+            #   Process.wait(@child)
+            # else
+            #   puts "Processing #{queue.name} since #{Time.now.to_i}"
+            #   exit! unless @cant_fork
+            # end
+            # metadata.ack
           end
-
-          queues << queue
         end
 
         EM.add_timer(5.5) do
@@ -42,28 +85,29 @@ module RabbitJobs
       @shutdown = true
     end
 
-    private
+    def startup
+      # prune_dead_workers
 
-    def run_job message
-      begin
-        params = JSON.parse(message[:payload])
-        klass_name = params.delete_at(0)
-        klass = klass_name.constantize
-        log "#{Time.zone.now.utc.to_s(:db)} #{klass} #{params == [] ? '' : params.inspect}"
-        klass.send(:perform, *params)
-      rescue
-        log "JOB ERROR at #{Time.zone.now.utc.to_s(:db)}:"
-        log $!.inspect
-        log $!.backtrace
-        log "message: #{message[:payload].inspect}"
-        Mailer.send(klass_name, params, $!)
-      ensure
-        # Publisher.remove_lock(message[:payload])
-      end
+      # Fix buffering so we can `rake rj:work > resque.log` and
+      # get output from the child in there.
+      $stdout.sync = true
     end
 
-    def log(message)
-      puts(message) unless Rails.env.test?
+    def shutdown!
+      shutdown
+      kill_child
+    end
+
+    def kill_child
+      if @child
+        # log! "Killing child at #{@child}"
+        if system("ps -o pid,state -p #{@child}")
+          Process.kill("KILL", @child) rescue nil
+        else
+          # log! "Child #{@child} not found, restarting."
+          # shutdown
+        end
+      end
     end
   end
 end
