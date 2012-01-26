@@ -7,7 +7,7 @@ require 'eventmachine'
 module RabbitJobs
   module Publisher
     extend self
-    extend Helpers
+    extend AmqpHelpers
 
     def enqueue(klass, *params)
       key = RabbitJobs.config.routing_keys.first
@@ -19,7 +19,7 @@ module RabbitJobs
 
       payload = ([klass.to_s] + params).to_json
 
-      with_queue(routing_key) do |connection, exchange, queue|
+      amqp_with_exchange do |connection, exchange|
         exchange.publish(payload, RabbitJobs.config.publish_params.merge({routing_key: routing_key})) {
           connection.close { EM.stop }
         }
@@ -29,7 +29,7 @@ module RabbitJobs
     def purge_queue(routing_key)
       raise ArgumentError unless routing_key
 
-      with_queue(routing_key) do |connection, exchange, queue|
+      amqp_with_queue(routing_key) do |connection, queue|
         queue.status do |number_of_messages, number_of_consumers|
           queue.purge {
             connection.close {

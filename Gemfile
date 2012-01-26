@@ -8,5 +8,6 @@ group :development do
   gem 'rspec', '~> 2.8'
   gem 'rr'
   gem 'autotest'
+  # gem 'fs-event'
   gem 'simplecov', require: false
 end

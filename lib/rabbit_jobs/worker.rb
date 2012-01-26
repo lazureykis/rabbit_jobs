@@ -2,7 +2,7 @@
 
 module RabbitJobs
   class Worker
-    extend Helpers
+    extend AmqpHelpers
 
     # Subscribes to channel and working on jobs
     def run_loop
@@ -10,27 +10,7 @@ module RabbitJobs
 
       # todo: register signals
 
-      host = Configuration.host
-      queue_params = Configuration.queue_params
-      exchange_name = Configuration.exchange_name
-      exchange_params = Configuration.exchange_params
-      publish_params = Configuration.publish_params
-
-      channel_exception_handler = Proc.new do |ch, channel_close|
-        EM.stop
-        raise "channel error: #{channel_close.reply_text}"
-      end
-
-      AMQP.start(host: host) do |connection|
-        channel  = AMQP::Channel.new(connection)
-
-        channel.prefetch(1)
-        channel.on_error(&channel_exception_handler)
-
-        exchange = channel.direct(exchange_name, exchange_params)
-
-        # create queues and subscribe
-        queues = []
+      amqp_with_exchange do |connection, exchange|
         Configuration.queues.each do |routing_key|
           queue_name = Configuration.queue_name(routing_key)
           queue = channel.queue(queue_name, queue_params).bind(exchange, :routing_key => routing_key)
@@ -56,7 +36,6 @@ module RabbitJobs
           end
         end
       end
-
     end
 
     def shutdown
