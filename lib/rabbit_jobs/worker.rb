@@ -31,7 +31,6 @@ module RabbitJobs
     def work(time = 10)
       startup
 
-      EM.threadpool_size = 1
       processed_count = 0
       amqp_with_exchange do |connection, exchange|
         exchange.channel.prefetch(1)

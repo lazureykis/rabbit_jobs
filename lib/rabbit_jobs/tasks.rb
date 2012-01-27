@@ -12,7 +12,7 @@ namespace :rj do
 
     begin
       worker = RabbitJobs::Worker.new(*queues)
-      # worker.verbose = ENV['LOGGING'] || ENV['VERBOSE']
+      RabbitJobs::Logger.verbose = true if ENV['VERBOSE']
       # worker.very_verbose = ENV['VVERBOSE']
     end
 

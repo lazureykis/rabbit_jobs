@@ -8,13 +8,11 @@ module RabbitJobs
 
     def log!(string)
       @@verbose ||= false
-      log(string) if @@verbose
+      log(string) if RabbitJobs::Logger.verbose
     end
 
-    attr_accessor :verbose
-    def verbose=(value)
-      puts 'logger verbose: ' + value.to_s
-      @@verbose = value
+    class << self
+      attr_accessor :verbose
     end
   end
 end
