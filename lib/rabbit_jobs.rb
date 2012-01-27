@@ -25,6 +25,11 @@ module RabbitJobs
   class TestJob < RabbitJobs::Job
     def self.perform(*params)
       puts "processing in job: " + params.inspect
+
+      if rand(3) == 0
+        puts "ERROR TEXT"
+        raise "ERROR TEXT"
+      end
     end
   end
 end

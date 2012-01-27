@@ -17,8 +17,8 @@ module RabbitJobs
   def load_config
     self.configure do |c|
       c.host 'localhost'
-      c.exchange 'rabbit_jobs', auto_delete: true
-      c.queue 'default', auto_delete: true, ack: true
+      c.exchange 'rabbit_jobs', auto_delete: false, durable: true
+      c.queue 'default', auto_delete: false, ack: true, durable: true
     end
     @@configuration
   end
@@ -27,8 +27,14 @@ module RabbitJobs
     include Helpers
 
     DEFAULT_QUEUE_PARAMS = {
-      auto_delete: true,
+      auto_delete: false,
+      durable: true,
       ack: true
+    }
+
+    DEFAULT_EXCHANGE_PARAMS = {
+      auto_delete: false,
+      durable: true
     }
 
     def to_hash
@@ -39,7 +45,7 @@ module RabbitJobs
       @data = {
         host: 'localhost',
         exchange: 'rabbit_jobs',
-        exchange_params: {},
+        exchange_params: DEFAULT_EXCHANGE_PARAMS,
         queues: {}
       }
     end
@@ -61,9 +67,7 @@ module RabbitJobs
       if value
         raise ArgumentError unless value.is_a?(String) && value != ""
         @data[:exchange] = value
-        if params
-          @data[:exchange_params] = params
-        end
+        @data[:exchange_params] = DEFAULT_EXCHANGE_PARAMS.merge(params)
       else
         @data[:exchange]
       end
@@ -76,7 +80,7 @@ module RabbitJobs
       if @data[:queues][name]
         @data[:queues][name].merge!(params)
       else
-        @data[:queues][name] = (params == {} ? DEFAULT_QUEUE_PARAMS : params)
+        @data[:queues][name] = DEFAULT_QUEUE_PARAMS.merge(params)
       end
     end
 
@@ -99,8 +103,8 @@ module RabbitJobs
     def publish_params
       {
         persistent: true,
-        nowait: false,
-        # immediate: true
+        nowait: true,
+        immediate: false
       }
     end
 

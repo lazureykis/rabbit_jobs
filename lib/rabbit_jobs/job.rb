@@ -23,9 +23,22 @@ module RabbitJobs
     end
 
     def perform
-      log 'before perform'
-      klass.perform(*params)
-      log 'after perform'
+      if @child = fork
+        srand # Reseeding
+        puts "Forked #{@child} at #{Time.now} to process #{klass}.perform(#{ params.map(&:inspect).join(', ') })"
+        Process.wait(@child)
+        yield if block_given?
+      else
+        begin
+          @error = nil
+          # log 'before perform'
+          klass.perform(*params)
+          # log 'after perform'
+        rescue
+          @error = $!
+        end
+        exit!
+      end
     end
   end
 end

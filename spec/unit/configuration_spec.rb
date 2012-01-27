@@ -70,12 +70,14 @@ describe RabbitJobs::Configuration do
       host: "localhost",
       exchange: "rabbit_jobs",
       exchange_params: {
-        auto_delete: true
+        auto_delete: false,
+        durable: true
       },
       queues: {
         "default" => {
-          auto_delete: true,
-          ack: true
+          auto_delete: false,
+          ack: true,
+          durable: true
         }
       }
     }

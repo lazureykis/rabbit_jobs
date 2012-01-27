@@ -3,6 +3,7 @@
 module RabbitJobs
   class Worker
     include AmqpHelpers
+    include Logger
 
     # Workers should be initialized with an array of string queue
     # names. The order is important: a Worker will check the first
@@ -16,65 +17,52 @@ module RabbitJobs
     # in alphabetical order. Queues can be dynamically added or
     # removed without needing to restart workers using this method.
     def initialize(*queues)
-      @queues = queues.map { |queue| queue.to_s.strip }
-      validate_queues
+      @queues = queues.map { |queue| queue.to_s.strip }.flatten.uniq
+      if @queues == ['*'] || @queues.empty?
+        @queues = RabbitJobs.config.routing_keys
+      end
+
+      $stdout.sync = true
     end
 
     def queues
-      @queues.map {|queue| queue == "*" ? RabbitJobs.config.routing_keys.sort : queue }.flatten.uniq
-    end
-
-    # A worker must be given a queue, otherwise it won't know what to
-    # do with itself.
-    #
-    # You probably never need to call this.
-    def validate_queues
-      if @queues.nil? || @queues.empty?
-        raise NoQueueError.new("Please give each worker at least one queue.")
-      end
+      @queues || ['default']
     end
 
     # Subscribes to channel and working on jobs
-    def work
-      puts "pid: #{Process.pid}"
+    def work(time = 10)
+      $stdout.sync = true
       @shutdown = false
 
       trap('TERM') { shutdown }
       trap('INT')  { shutdown! }
 
+      EM.threadpool_size = 1
+      processed_count = 0
       amqp_with_exchange do |connection, exchange|
+        exchange.channel.prefetch(3)
+
         queues.each do |routing_key|
           queue = make_queue(exchange, routing_key)
 
+          puts "Worker ##{Process.pid} <= #{exchange.name}##{routing_key}"
+
           queue.subscribe(ack: true) do |metadata, payload|
-            puts "got: #{payload}"
-            if payload =~ /SHUTDOWN/
-              shutdown
-              puts "shutting down"
-            else
-              job = Job.new(payload)
-              job.perform
-              # JobRunner.perform(payload)
-            end
-            # if @child = fork
-            #   srand # Reseeding
-            #   puts "Forked #{@child} at #{Time.now.to_i} to process #{payload}"
-            #   Process.wait(@child)
-            # else
-            #   puts "Processing #{queue.name} since #{Time.now.to_i}"
-            #   exit! unless @cant_fork
-            # end
-            # metadata.ack
+            job = Job.new(payload)
+            job.perform
+            metadata.ack
+            processed_count += 1
           end
         end
 
-        EM.add_timer(5.5) do
+        EM.add_timer(time) do
           self.shutdown
         end
 
-        EM.add_periodic_timer(1.0) do
+        EM.add_periodic_timer(0.1) do
           if @shutdown
-            puts "Cancelled default consumer..."
+            puts "Processed jobs: #{processed_count}"
+            puts "Stopping worker..."
             connection.close { EM.stop }
           end
         end

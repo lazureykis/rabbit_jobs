@@ -20,11 +20,25 @@ module RabbitJobs
       payload = ([klass.to_s] + params).to_json
 
       amqp_with_exchange do |connection, exchange|
+
+        queue = make_queue(exchange, routing_key)
+
         exchange.publish(payload, RabbitJobs.config.publish_params.merge({routing_key: routing_key})) {
           connection.close { EM.stop }
         }
       end
     end
+
+    # def spam
+    #   payload = ([klass.to_s] + params).to_json
+
+    #   amqp_with_exchange do |connection, exchange|
+    #     10000.times { |i| RabbitJobs.enqueue(RabbitJobs::TestJob, i) }
+    #     exchange.publish(payload, RabbitJobs.config.publish_params.merge({routing_key: routing_key})) {
+    #       connection.close { EM.stop }
+    #     }
+    #   end
+    # end
 
     def purge_queue(routing_key)
       raise ArgumentError unless routing_key
