@@ -6,7 +6,7 @@ module RabbitJobs
     include RabbitJobs::Helpers
     include Logger
 
-    attr_accessor :params, :klass
+    attr_accessor :params, :klass, :child
 
     def initialize(payload)
       begin

@@ -2,10 +2,6 @@
 require 'spec_helper'
 
 describe RabbitJobs::Configuration do
-  before(:each) do
-    RabbitJobs.class_variable_set '@@configuration', nil
-  end
-
   it 'builds configuration from configure block' do
     RabbitJobs.configure do |c|
       c.host "somehost.lan"

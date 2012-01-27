@@ -21,8 +21,6 @@ module RabbitJobs
       if @queues == ['*'] || @queues.empty?
         @queues = RabbitJobs.config.routing_keys
       end
-
-      $stdout.sync = true
     end
 
     def queues
@@ -32,10 +30,6 @@ module RabbitJobs
     # Subscribes to channel and working on jobs
     def work(time = 10)
       startup
-      @shutdown = false
-
-      trap('TERM') { shutdown }
-      trap('INT')  { shutdown! }
 
       EM.threadpool_size = 1
       processed_count = 0
@@ -56,8 +50,8 @@ module RabbitJobs
           log "Worker ##{Process.pid} <= #{exchange.name}##{routing_key}"
 
           queue.subscribe(ack: true) do |metadata, payload|
-            job = Job.new(payload)
-            job.perform
+            @job = Job.new(payload)
+            @job.perform
             metadata.ack
             processed_count += 1
             check_shutdown.call
@@ -86,6 +80,9 @@ module RabbitJobs
       $stdout.sync = true
 
       @shutdown = false
+
+      Signal.trap('TERM') { shutdown }
+      Signal.trap('INT')  { shutdown! }
     end
 
     def shutdown!
@@ -94,10 +91,10 @@ module RabbitJobs
     end
 
     def kill_child
-      if @child
+      if @job && @job.child
         # log! "Killing child at #{@child}"
-        if system("ps -o pid,state -p #{@child}")
-          Process.kill("KILL", @child) rescue nil
+        if Kernel.system("ps -o pid,state -p #{@job.child}")
+          Process.kill("KILL", @job.child) rescue nil
         else
           # log! "Child #{@child} not found, restarting."
           # shutdown
