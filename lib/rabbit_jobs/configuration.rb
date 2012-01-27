@@ -37,6 +37,12 @@ module RabbitJobs
       durable: true
     }
 
+    DEFAULT_MESSAGE_PARAMS = {
+      persistent: true,
+      nowait: false,
+      immediate: false
+    }
+
     def to_hash
       @data.dup
     end
@@ -98,14 +104,6 @@ module RabbitJobs
 
     def load_yaml(text)
       convert_yaml_config(YAML.load(text))
-    end
-
-    def publish_params
-      {
-        persistent: true,
-        nowait: true,
-        immediate: false
-      }
     end
 
     def convert_yaml_config(yaml)

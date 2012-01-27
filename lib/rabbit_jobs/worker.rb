@@ -31,7 +31,7 @@ module RabbitJobs
 
     # Subscribes to channel and working on jobs
     def work(time = 10)
-      $stdout.sync = true
+      startup
       @shutdown = false
 
       trap('TERM') { shutdown }
@@ -40,18 +40,27 @@ module RabbitJobs
       EM.threadpool_size = 1
       processed_count = 0
       amqp_with_exchange do |connection, exchange|
-        exchange.channel.prefetch(3)
+        exchange.channel.prefetch(1)
+
+        check_shutdown = Proc.new {
+          if @shutdown
+            log "Processed jobs: #{processed_count}"
+            log "Stopping worker..."
+            connection.close { EM.stop { exit! } }
+          end
+        }
 
         queues.each do |routing_key|
           queue = make_queue(exchange, routing_key)
 
-          puts "Worker ##{Process.pid} <= #{exchange.name}##{routing_key}"
+          log "Worker ##{Process.pid} <= #{exchange.name}##{routing_key}"
 
           queue.subscribe(ack: true) do |metadata, payload|
             job = Job.new(payload)
             job.perform
             metadata.ack
             processed_count += 1
+            check_shutdown.call
           end
         end
 
@@ -59,12 +68,8 @@ module RabbitJobs
           self.shutdown
         end
 
-        EM.add_periodic_timer(0.1) do
-          if @shutdown
-            puts "Processed jobs: #{processed_count}"
-            puts "Stopping worker..."
-            connection.close { EM.stop }
-          end
+        EM.add_periodic_timer(1) do
+          check_shutdown.call
         end
       end
     end
@@ -79,6 +84,8 @@ module RabbitJobs
       # Fix buffering so we can `rake rj:work > resque.log` and
       # get output from the child in there.
       $stdout.sync = true
+
+      @shutdown = false
     end
 
     def shutdown!

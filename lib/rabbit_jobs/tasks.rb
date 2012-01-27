@@ -25,7 +25,7 @@ namespace :rj do
     end
 
     # worker.log "Starting worker #{worker.pid}"
-
+    # worker.verbose = true
     worker.work 1
     # worker.work(ENV['INTERVAL'] || 5) # interval, will block
   end

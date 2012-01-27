@@ -23,7 +23,7 @@ module RabbitJobs
 
         queue = make_queue(exchange, routing_key)
 
-        exchange.publish(payload, RabbitJobs.config.publish_params.merge({routing_key: routing_key})) {
+        exchange.publish(payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({routing_key: routing_key})) {
           connection.close { EM.stop }
         }
       end

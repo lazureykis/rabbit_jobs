@@ -4,7 +4,7 @@ require 'json'
 module RabbitJobs
   class Job
     include RabbitJobs::Helpers
-    include RabbitJobs::Logger
+    include Logger
 
     attr_accessor :params, :klass
 
@@ -25,17 +25,16 @@ module RabbitJobs
     def perform
       if @child = fork
         srand # Reseeding
-        puts "Forked #{@child} at #{Time.now} to process #{klass}.perform(#{ params.map(&:inspect).join(', ') })"
+        log! "Forked #{@child} at #{Time.now} to process #{klass}.perform(#{ params.map(&:inspect).join(', ') })"
         Process.wait(@child)
         yield if block_given?
       else
         begin
-          @error = nil
           # log 'before perform'
           klass.perform(*params)
           # log 'after perform'
         rescue
-          @error = $!
+          puts $!.inspect
         end
         exit!
       end
