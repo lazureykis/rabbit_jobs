@@ -56,6 +56,5 @@ describe RabbitJobs::Worker do
 
       @worker.kill_child
     end
-
   end
 end

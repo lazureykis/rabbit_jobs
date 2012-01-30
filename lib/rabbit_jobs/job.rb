@@ -19,6 +19,7 @@ module RabbitJobs
         log $!.backtrace
         log "message: #{payload.inspect}"
         # Mailer.send(klass_name, params, $!)
+        # raise $!
       end
     end
 

@@ -30,7 +30,7 @@ module RabbitJobs
     end
 
     # Subscribes to channel and working on jobs
-    def work(time = 10)
+    def work(time = 0)
       startup
 
       processed_count = 0
@@ -63,8 +63,11 @@ module RabbitJobs
           end
         end
 
-        EM.add_timer(time) do
-          self.shutdown
+        if time > 0
+          # for debugging
+          EM.add_timer(time) do
+            self.shutdown
+          end
         end
 
         EM.add_periodic_timer(1) do
