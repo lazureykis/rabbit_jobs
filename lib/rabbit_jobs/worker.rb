@@ -5,6 +5,8 @@ module RabbitJobs
     include AmqpHelpers
     include Logger
 
+    attr_accessor :pidfile, :background
+
     # Workers should be initialized with an array of string queue
     # names. The order is important: a Worker will check the first
     # queue given for a job. If none is found, it will check the
@@ -39,7 +41,11 @@ module RabbitJobs
           if @shutdown
             log "Processed jobs: #{processed_count}"
             log "Stopping worker..."
-            connection.close { EM.stop { exit! } }
+
+            connection.close {
+              File.delete(self.pidfile) if self.pidfile
+              EM.stop { exit! }
+            }
           end
         }
 
@@ -73,6 +79,12 @@ module RabbitJobs
 
     def startup
       # prune_dead_workers
+
+      Process.daemon(true) if self.background
+
+      if self.pidfile
+        File.open(self.pidfile, 'w') { |f| f << Process.pid }
+      end
 
       # Fix buffering so we can `rake rj:work > resque.log` and
       # get output from the child in there.

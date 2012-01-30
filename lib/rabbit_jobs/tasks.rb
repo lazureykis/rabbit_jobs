@@ -12,21 +12,15 @@ namespace :rj do
 
     begin
       worker = RabbitJobs::Worker.new(*queues)
+      worker.pidfile = ENV['PIDFILE']
+      worker.background = %w(yes true).include? ENV['BACKGROUND']
       RabbitJobs::Logger.verbose = true if ENV['VERBOSE']
       # worker.very_verbose = ENV['VVERBOSE']
     end
 
-    if ENV['BACKGROUND']
-      Process.daemon(true)
-    end
-
-    if ENV['PIDFILE']
-      File.open(ENV['PIDFILE'], 'w') { |f| f << worker.pid }
-    end
-
     # worker.log "Starting worker #{worker.pid}"
     # worker.verbose = true
-    worker.work 1
+    worker.work 10
     # worker.work(ENV['INTERVAL'] || 5) # interval, will block
   end
 
