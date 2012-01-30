@@ -8,6 +8,7 @@ module RabbitJobs
   module Publisher
     extend self
     extend AmqpHelpers
+    extend Locks
 
     def enqueue(klass, *params)
       key = RabbitJobs.config.routing_keys.first
@@ -17,28 +18,27 @@ module RabbitJobs
     def enqueue_to(routing_key, klass, *params)
       raise ArgumentError unless klass && routing_key
 
-      payload = ([klass.to_s] + params).to_json
+      job = klass.new(*params)
 
+      if job.locked?
+        lock_job(job) {
+          publish_job_to(routing_key, job)
+        }
+      else
+        publish_job_to(routing_key, job)
+      end
+    end
+
+    def publish_job_to(routing_key, job)
       amqp_with_exchange do |connection, exchange|
 
         queue = make_queue(exchange, routing_key)
 
-        exchange.publish(payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({routing_key: routing_key})) {
+        exchange.publish(job.payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({routing_key: routing_key})) {
           connection.close { EM.stop }
         }
       end
     end
-
-    # def spam
-    #   payload = ([klass.to_s] + params).to_json
-
-    #   amqp_with_exchange do |connection, exchange|
-    #     10000.times { |i| RabbitJobs.enqueue(RabbitJobs::TestJob, i) }
-    #     exchange.publish(payload, RabbitJobs.config.publish_params.merge({routing_key: routing_key})) {
-    #       connection.close { EM.stop }
-    #     }
-    #   end
-    # end
 
     def purge_queue(routing_key)
       raise ArgumentError unless routing_key

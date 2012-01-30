@@ -93,7 +93,7 @@ module RabbitJobs
       end
     end
 
-    def lock_with(name, params = {})
+    def lock_with(name = nil, params = {})
       raise ArgumentError.new("name is #{name.inspect}") unless name && name.is_a?(Symbol)
       raise ArgumentError.new("params is #{params.inspect}") unless params && params.is_a?(Hash)
       raise NotImplemented if name != :redis

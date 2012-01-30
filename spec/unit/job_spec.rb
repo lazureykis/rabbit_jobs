@@ -2,15 +2,16 @@
 require 'spec_helper'
 
 describe RabbitJobs::Job do
-  class MyTestJob < RabbitJobs::Job
-    def self.perform(one, two, three)
-    end
+  it 'should parse klass and params' do
+    # job = RabbitJobs::Job.parse([TestJob, 1, 2, 3].to_json)
+    job = TestJob.new(1, 2, 3)
+    job.klass.should == TestJob
+    job.params.should == [1, 2, 3]
   end
 
-  it 'should perform job' do
-    job = RabbitJobs::Job.new([MyTestJob, 1, 2, 3].to_json)
-    job.klass.should == MyTestJob
-    job.params.should == [1, 2, 3]
-    job.perform
+  it 'should accept lock_with_params options' do
+    job = TestJobLockedWithParams.new(1, 2, 3)
+    job.locked.should == :with_params
+    job.locked?.should == true
   end
 end

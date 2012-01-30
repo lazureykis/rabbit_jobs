@@ -55,7 +55,7 @@ module RabbitJobs
           log "Worker ##{Process.pid} <= #{exchange.name}##{routing_key}"
 
           queue.subscribe(ack: true) do |metadata, payload|
-            @job = Job.new(payload)
+            @job = RabbitJobs::Job.parse(payload)
             @job.perform
             metadata.ack
             processed_count += 1
@@ -105,10 +105,10 @@ module RabbitJobs
     end
 
     def kill_child
-      if @job && @job.child
+      if @job && @job.child_pid
         # log! "Killing child at #{@child}"
-        if Kernel.system("ps -o pid,state -p #{@job.child}")
-          Process.kill("KILL", @job.child) rescue nil
+        if Kernel.system("ps -o pid,state -p #{@job.child_pid}")
+          Process.kill("KILL", @job.child_pid) rescue nil
         else
           # log! "Child #{@child} not found, restarting."
           # shutdown
