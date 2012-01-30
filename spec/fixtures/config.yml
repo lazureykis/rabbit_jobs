@@ -15,3 +15,7 @@ rabbit_jobs:
       durable: false
       auto_delete: true
       ack: false
+  lock_with: redis
+  redis:
+    namespace: rj
+    timeout: 1800

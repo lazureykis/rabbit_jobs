@@ -10,6 +10,8 @@ describe RabbitJobs::Configuration do
 
       c.queue 'durable_queue', durable: true,  auto_delete: false, ack: true, arguments: {'x-ha-policy' => 'all'}
       c.queue 'fast_queue',    durable: false, auto_delete: true,  ack: false
+
+      c.lock_with :redis, timeout: 180, namespace: 'rj_test'
     end
 
     RabbitJobs.config.to_hash.should == {
@@ -31,6 +33,11 @@ describe RabbitJobs::Configuration do
           auto_delete: true,
           ack: false
         },
+      },
+      lock_with: :redis,
+      redis: {
+        namespace: 'rj_test',
+        timeout: 180
       }
     }
   end
@@ -57,6 +64,11 @@ describe RabbitJobs::Configuration do
           auto_delete: true,
           ack: false
         }
+      },
+      lock_with: :redis,
+      redis: {
+        namespace: 'rj',
+        timeout: 1800
       }
     }
   end
@@ -75,6 +87,11 @@ describe RabbitJobs::Configuration do
           ack: true,
           durable: true
         }
+      },
+      lock_with: :redis,
+      redis: {
+        namespace: 'rj',
+        timeout: 1800
       }
     }
   end

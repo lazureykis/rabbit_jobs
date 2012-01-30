@@ -18,6 +18,6 @@ describe RabbitJobs::Worker do
     5.times { RabbitJobs::Publisher.enqueue(IntegrationTestJob, Time.now) }
     worker = RabbitJobs::Worker.new
 
-    worker.work(3) # work for 3 seconds
+    worker.work(1) # work for 1 second
   end
 end

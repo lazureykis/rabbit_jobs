@@ -19,4 +19,5 @@ Gem::Specification.new do |gem|
 
   gem.add_dependency "amqp", "~> 0.9"
   gem.add_dependency "rake"
+  gem.add_dependency "redis-namespace" # for locking jobs
 end
