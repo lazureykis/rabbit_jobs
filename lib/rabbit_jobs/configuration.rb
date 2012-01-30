@@ -83,7 +83,7 @@ module RabbitJobs
       raise ArgumentError.new("name is #{name.inspect}") unless name && name.is_a?(String) && name != ""
       raise ArgumentError.new("params is #{params.inspect}") unless params && params.is_a?(Hash)
 
-      name.downcase!
+      name = name.downcase
 
       if @data[:queues][name]
         @data[:queues][name].merge!(params)
