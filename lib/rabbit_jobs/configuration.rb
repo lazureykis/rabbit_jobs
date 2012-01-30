@@ -72,7 +72,7 @@ module RabbitJobs
     def exchange(value = nil, params = {})
       if value
         raise ArgumentError unless value.is_a?(String) && value != ""
-        @data[:exchange] = value
+        @data[:exchange] = value.downcase
         @data[:exchange_params] = DEFAULT_EXCHANGE_PARAMS.merge(params)
       else
         @data[:exchange]
@@ -82,6 +82,8 @@ module RabbitJobs
     def queue(name, params = {})
       raise ArgumentError.new("name is #{name.inspect}") unless name && name.is_a?(String) && name != ""
       raise ArgumentError.new("params is #{params.inspect}") unless params && params.is_a?(Hash)
+
+      name.downcase!
 
       if @data[:queues][name]
         @data[:queues][name].merge!(params)
