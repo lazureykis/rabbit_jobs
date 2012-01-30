@@ -18,4 +18,5 @@ Gem::Specification.new do |gem|
   gem.version       = RabbitJobs::VERSION
 
   gem.add_dependency "amqp", "~> 0.9"
+  gem.add_dependency "rake"
 end
