@@ -11,8 +11,3 @@ class PrintTimeJob
     puts "Running job queued at #{time}"
   end
 end
-
-class TestJobLockedWithParams
-  include RabbitJobs::Job
-  locked :with_params
-end

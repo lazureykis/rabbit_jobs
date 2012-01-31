@@ -17,7 +17,6 @@ module RabbitJobs
   def load_config
     self.configure do |c|
       c.host 'localhost'
-      c.lock_with :redis, namespace: 'rj', timeout: 30*60 # lock jobs for 30 minutes
       c.exchange 'rabbit_jobs', auto_delete: false, durable: true
       c.queue 'default', auto_delete: false, ack: true, durable: true
     end
@@ -93,27 +92,6 @@ module RabbitJobs
       end
     end
 
-    def lock_with(name = nil, params = {})
-      raise ArgumentError.new("name is #{name.inspect}") unless name && name.is_a?(Symbol)
-      raise ArgumentError.new("params is #{params.inspect}") unless params && params.is_a?(Hash)
-      raise NotImplemented if name != :redis
-
-      if name
-        @data[:lock_with] = :redis
-        @data[:redis] = {timeout: params[:timeout] || 30 * 60, namespace: params[:namespace] || 'rj'}
-      else
-        @data[:lock_with]
-      end
-    end
-
-    def redis_namespace
-      (@data[:redis] && @data[:redis][:namespace]) || 'rj'
-    end
-
-    def redis_timeout
-      (@data[:redis] && @data[:redis][:timeout]) || 30 * 60
-    end
-
     def routing_keys
       @data[:queues].keys
     end
@@ -140,8 +118,6 @@ module RabbitJobs
         yaml['queues'].each do |name, params|
           queue name, symbolize_keys!(params) || {}
         end
-
-        lock_with yaml['lock_with'].to_sym, yaml[yaml['lock_with'].to_s]
       end
     end
   end

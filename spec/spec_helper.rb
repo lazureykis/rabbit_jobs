@@ -1,8 +1,8 @@
 # -*- encoding : utf-8 -*-
-# require 'simplecov'
-# SimpleCov.start do
-#   add_filter "spec" # ignore spec files
-# end
+require 'simplecov'
+SimpleCov.start do
+  add_filter "spec" # ignore spec files
+end
 
 require 'rr'
 
