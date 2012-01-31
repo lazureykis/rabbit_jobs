@@ -2,9 +2,8 @@
 require 'spec_helper'
 
 describe RabbitJobs::Job do
-  it 'should parse klass and params' do
-    job = TestJob.new(1, 2, 3)
-    job.klass.should == TestJob
+  it 'should parse class and params' do
+    job = RabbitJobs::Job.parse((['TestJob',1,2,3]).to_json)
     job.params.should == [1, 2, 3]
   end
 

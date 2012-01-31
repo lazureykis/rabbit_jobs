@@ -12,11 +12,10 @@ module RabbitJobs::Job
     base.extend (ClassMethods)
 
     def initialize(*perform_params)
-      self.klass = self.class
       self.params = *perform_params
     end
 
-    attr_accessor :params, :klass, :child_pid
+    attr_accessor :params, :child_pid
 
     def perform
       if @child_pid = fork
@@ -37,7 +36,7 @@ module RabbitJobs::Job
     end
 
     def payload
-      ([klass.to_s] + params).to_json
+      ([self.class.to_s] + params).to_json
     end
 
     def expires_in
@@ -61,8 +60,8 @@ module RabbitJobs::Job
   def self.parse(payload)
     begin
       params = JSON.parse(payload)
-      klass = constantize(params.delete_at(0))
-      job = klass.new(*params)
+      job_klass = constantize(params.delete_at(0))
+      job = job_klass.new(*params)
     rescue
       log "JOB INIT ERROR at #{Time.now.to_s}:"
       log $!.inspect
