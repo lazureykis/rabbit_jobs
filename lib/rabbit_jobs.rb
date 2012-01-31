@@ -7,7 +7,6 @@ require 'rabbit_jobs/amqp_helpers'
 require 'rabbit_jobs/configuration'
 require 'rabbit_jobs/logger'
 
-require 'rabbit_jobs/locks'
 require 'rabbit_jobs/job'
 require 'rabbit_jobs/publisher'
 require 'rabbit_jobs/worker'

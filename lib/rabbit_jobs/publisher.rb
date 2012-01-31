@@ -8,7 +8,6 @@ module RabbitJobs
   module Publisher
     extend self
     extend AmqpHelpers
-    extend Locks
 
     def enqueue(klass, *params)
       key = RabbitJobs.config.routing_keys.first
@@ -20,13 +19,7 @@ module RabbitJobs
 
       job = klass.new(*params)
 
-      if job.locked?
-        lock_job(job) {
-          publish_job_to(routing_key, job)
-        }
-      else
-        publish_job_to(routing_key, job)
-      end
+      publish_job_to(routing_key, job)
     end
 
     def publish_job_to(routing_key, job)
