@@ -40,34 +40,22 @@ module RabbitJobs::Job
       ([klass.to_s] + params).to_json
     end
 
-  #   def locked
-  #     self.class.rj_lock_type
-  #   end
+    def expires_in
+      self.class.rj_expires_in
+    end
 
-  #   def locked?
-  #     !!self.locked
-  #   end
-
-  #   # lock_key is a hash for locking enqueued job in redis
-  #   def lock_key
-  #     case locked
-  #     when :with_params
-  #       Digest::MD5.hexdigest([self.class, self.params].to_json)
-  #     when :without_params
-  #       Digest::MD5.hexdigest(self.class)
-  #     when nil
-  #       ""
-  #     else raise NotImplementedError
-  #     end
-  #   end
+    def expires?
+      !!self.expires_in
+    end
   end
 
   module ClassMethods
-    # attr_accessor :rj_lock_type
+    attr_accessor :rj_expires_in
 
-    # def locked(lock_type)
-    #   @rj_lock_type = lock_type
-    # end
+    # DSL method for jobs
+    def expires_in(seconds)
+     @rj_expires_in = seconds
+    end
   end
 
   def self.parse(payload)

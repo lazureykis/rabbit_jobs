@@ -11,3 +11,8 @@ class PrintTimeJob
     puts "Running job queued at #{time}"
   end
 end
+
+class JobWithExpire
+  include RabbitJobs::Job
+  expires_in 60*60 # expires in 1 hour
+end

@@ -7,4 +7,10 @@ describe RabbitJobs::Job do
     job.klass.should == TestJob
     job.params.should == [1, 2, 3]
   end
+
+  it 'should understand expires_in' do
+    job = JobWithExpire.new(1, 2, 3)
+    job.expires_in.should == 60*60
+    job.expires?.should == true
+  end
 end
