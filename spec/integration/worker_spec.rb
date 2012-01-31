@@ -9,7 +9,8 @@ describe RabbitJobs::Worker do
       c.queue 'rspec_durable_queue', auto_delete: false, durable: true, ack: true
     end
 
-    5.times { RabbitJobs.publish(PrintTimeJob, Time.now) }
+    5.times { RabbitJobs.publish(PrintTimeJob, nil, Time.now) }
+    5.times { RabbitJobs.publish(ExpiredJob, { :expires_at => Time.now - 10 }) }
     worker = RabbitJobs::Worker.new
 
     worker.work(1) # work for 1 second

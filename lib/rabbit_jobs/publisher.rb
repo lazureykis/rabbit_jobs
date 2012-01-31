@@ -9,15 +9,17 @@ module RabbitJobs
     extend self
     extend AmqpHelpers
 
-    def publish(klass, *params)
+    def publish(klass, opts = {}, *params)
       key = RabbitJobs.config.routing_keys.first
-      publish_to(key, klass, *params)
+      publish_to(key, klass, opts, *params)
     end
 
-    def publish_to(routing_key, klass, *params)
+    def publish_to(routing_key, klass, opts = {}, *params)
       raise ArgumentError unless klass && routing_key
+      opts ||= {}
 
       job = klass.new(*params)
+      job.opts = opts
 
       publish_job_to(routing_key, job)
     end
@@ -27,6 +29,9 @@ module RabbitJobs
 
         queue = make_queue(exchange, routing_key)
 
+        job.opts['created_at'] = Time.now.to_s
+
+        payload = job.payload
         exchange.publish(job.payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({routing_key: routing_key})) {
           connection.close { EM.stop }
         }

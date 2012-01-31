@@ -15,4 +15,15 @@ end
 class JobWithExpire
   include RabbitJobs::Job
   expires_in 60*60 # expires in 1 hour
+  def self.perform
+
+  end
+end
+
+class ExpiredJob
+  include RabbitJobs::Job
+
+  def self.perform
+
+  end
 end

@@ -13,11 +13,12 @@ module RabbitJobs::Job
 
     def initialize(*perform_params)
       self.params = *perform_params
+      self.opts = {}
     end
 
-    attr_accessor :params, :child_pid
+    attr_accessor :params, :opts, :child_pid
 
-    def perform
+    def run_perform
       if @child_pid = fork
         srand # Reseeding
         log "Forked #{@child_pid} at #{Time.now} to process #{self.class}.perform(#{ params.map(&:inspect).join(', ') })"
@@ -36,7 +37,8 @@ module RabbitJobs::Job
     end
 
     def payload
-      ([self.class.to_s] + params).to_json
+      {'class' => self.class.to_s, 'opts' => (self.opts || {}), 'params' => params}.to_json
+      # ([self.class.to_s] + params).to_json
     end
 
     def expires_in
@@ -45,6 +47,16 @@ module RabbitJobs::Job
 
     def expires?
       !!self.expires_in
+    end
+
+    def expired?
+      if self.opts['expires_at']
+        Time.now > Time.new(opts['expires_at'])
+      elsif expires? && opts['created_at']
+        Time.now > (Time.new(opts['created_at']) + expires_in)
+      else
+        false
+      end
     end
   end
 
@@ -59,9 +71,11 @@ module RabbitJobs::Job
 
   def self.parse(payload)
     begin
-      params = JSON.parse(payload)
-      job_klass = constantize(params.delete_at(0))
-      job = job_klass.new(*params)
+      encoded = JSON.parse(payload)
+      job_klass = constantize(encoded['class'])
+      job = job_klass.new(*encoded['params'])
+      job.opts = encoded['opts']
+      job
     rescue
       log "JOB INIT ERROR at #{Time.now.to_s}:"
       log $!.inspect
