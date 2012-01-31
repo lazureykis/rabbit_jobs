@@ -9,12 +9,12 @@ module RabbitJobs
     extend self
     extend AmqpHelpers
 
-    def enqueue(klass, *params)
+    def publish(klass, *params)
       key = RabbitJobs.config.routing_keys.first
-      enqueue_to(key, klass, *params)
+      publish_to(key, klass, *params)
     end
 
-    def enqueue_to(routing_key, klass, *params)
+    def publish_to(routing_key, klass, *params)
       raise ArgumentError unless klass && routing_key
 
       job = klass.new(*params)

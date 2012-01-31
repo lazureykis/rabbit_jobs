@@ -7,6 +7,7 @@ end
 require 'rr'
 
 require 'rabbit_jobs'
+
 require 'fixtures/jobs'
 
 RSpec.configure do |config|

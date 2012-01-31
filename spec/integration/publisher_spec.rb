@@ -13,7 +13,7 @@ describe RabbitJobs::Publisher do
   end
 
   it 'should publish message to queue' do
-    RabbitJobs.enqueue(TestJob, 'some', 'other', 'params')
+    RabbitJobs.publish(TestJob, 'some', 'other', 'params')
     RabbitJobs::Publisher.purge_queue('rspec_queue').should == 1
   end
 end

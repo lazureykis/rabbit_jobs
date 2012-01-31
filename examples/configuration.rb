@@ -17,6 +17,13 @@ puts JSON.pretty_generate(RabbitJobs.config.to_hash)
 
 puts JSON.pretty_generate(RabbitJobs.config.queues)
 
-# 10.times {
-  RabbitJobs.enqueue_to('rabbit_jobs_test1', Integer, 'to_s')
-# }
+class MyJob < RabbitJobs::Job
+
+  expires_in 60 # dont perform this job after 60 seconds
+
+  def self.perform(time)
+    puts "This job was published at #{}"
+  end
+end
+
+RabbitJobs.publish_to('rabbit_jobs_test1', MyJob, Time.now)
