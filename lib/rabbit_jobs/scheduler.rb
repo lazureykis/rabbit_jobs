@@ -103,7 +103,6 @@ module RabbitJobs
         if time > 0
           # for debugging
           EM.add_timer(time) do
-            log "Stopping scheduler..."
             self.shutdown
           end
         end

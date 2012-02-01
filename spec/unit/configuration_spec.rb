@@ -4,6 +4,8 @@ require 'spec_helper'
 describe RabbitJobs::Configuration do
   it 'builds configuration from configure block' do
     RabbitJobs.configure do |c|
+      c.disable_error_log
+
       c.host "somehost.lan"
 
       c.exchange 'my_exchange', durable: true, auto_delete: false
@@ -13,6 +15,7 @@ describe RabbitJobs::Configuration do
     end
 
     RabbitJobs.config.to_hash.should == {
+      error_log: false,
       host: "somehost.lan",
       exchange: "my_exchange",
       exchange_params: {
@@ -63,6 +66,7 @@ describe RabbitJobs::Configuration do
 
   it 'use default config' do
     RabbitJobs.config.to_hash.should == {
+      error_log: true,
       host: "localhost",
       exchange: "rabbit_jobs",
       exchange_params: {
@@ -80,6 +84,7 @@ describe RabbitJobs::Configuration do
   end
 
   it 'returns settings on some methods' do
+    RabbitJobs.config.error_log == true
     RabbitJobs.config.host.should == 'localhost'
     RabbitJobs.config[:host].should == 'localhost'
     RabbitJobs.config.routing_keys.should == ['default']

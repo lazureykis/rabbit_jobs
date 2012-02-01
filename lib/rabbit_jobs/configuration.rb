@@ -49,6 +49,7 @@ module RabbitJobs
 
     def initialize
       @data = {
+        error_log: true,
         host: 'localhost',
         exchange: 'rabbit_jobs',
         exchange_params: DEFAULT_EXCHANGE_PARAMS,
@@ -58,6 +59,14 @@ module RabbitJobs
 
     def [](name)
       @data[name]
+    end
+
+    def error_log
+      @data[:error_log]
+    end
+
+    def disable_error_log
+      @data[:error_log] = false
     end
 
     def host(value = nil)
