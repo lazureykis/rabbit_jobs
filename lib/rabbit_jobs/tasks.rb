@@ -1,11 +1,13 @@
 # require 'resque/tasks'
 # will give you the resque tasks
 
+require 'rabbit_jobs'
+
 namespace :rj do
   task :setup
 
   desc "Start a Rabbit Jobs worker"
-  task :work => [ :preload, :setup ] do
+  task :worker => [ :preload, :setup ] do
     require 'rabbit_jobs'
 
     queues = (ENV['QUEUES'] || ENV['QUEUE']).to_s.split(',')
@@ -18,10 +20,23 @@ namespace :rj do
       # worker.very_verbose = ENV['VVERBOSE']
     end
 
-    # worker.log "Starting worker #{worker.pid}"
-    # worker.verbose = true
-    worker.work 10
-    # worker.work(ENV['INTERVAL'] || 5) # interval, will block
+    worker.work
+  end
+
+  desc "Start a Rabbit Jobs scheduler"
+  task :scheduler => [ :preload, :setup ] do
+
+    queues = (ENV['SCHEDULE']).to_s.split(',')
+
+    begin
+      scheduler = RabbitJobs::Scheduler.new(*queues)
+      scheduler.pidfile = ENV['PIDFILE']
+      scheduler.background = %w(yes true).include? ENV['BACKGROUND']
+      RabbitJobs::Logger.verbose = true if ENV['VERBOSE']
+      # worker.very_verbose = ENV['VVERBOSE']
+    end
+
+    scheduler.work
   end
 
   desc "Start multiple Resque workers. Should only be used in dev mode."
@@ -30,7 +45,7 @@ namespace :rj do
 
     ENV['COUNT'].to_i.times do
       threads << Thread.new do
-        system "rake resque:work"
+        system "rake resque:worker"
       end
     end
 
@@ -41,7 +56,8 @@ namespace :rj do
   task :preload => :setup do
     if defined?(Rails) && Rails.respond_to?(:application)
       # Rails 3
-      Rails.application.eager_load!
+      # Rails.application.eager_load!
+      Rails.application.require_environment!
     elsif defined?(Rails::Initializer)
       # Rails 2.3
       $rails_rake_task = false

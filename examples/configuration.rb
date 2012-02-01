@@ -14,7 +14,6 @@ RabbitJobs.configure do |c|
 end
 
 puts JSON.pretty_generate(RabbitJobs.config.to_hash)
-
 puts JSON.pretty_generate(RabbitJobs.config.queues)
 
 class MyJob < RabbitJobs::Job

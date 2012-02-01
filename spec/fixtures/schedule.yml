@@ -1,0 +1,239 @@
+# Каждую минуту
+
+reindex_users_and_loan_lots:
+  cron: "* * * * *"
+  queue: infinite_reindex
+  class: ReindexUsersAndLoanLots
+  args:
+  description: "Переиндексировать пользователей и лоты"
+
+ds_call_fake_response:
+  cron: "* * * * *"
+  queue: faker
+  class: DsCallFakeResponse
+  args:
+  description: "Генерация фейковых ответов от банка"
+
+# Каждый час
+
+update_top:
+  cron: "0 * * * *"
+  queue: critical
+  class: UpdateTop
+  args:
+  description: "Обновить ТОП-100"
+
+loan_lot_expire_open:
+  cron: "0 * * * *"
+  queue: critical
+  class: LoanLotExpireOpen
+  args:
+  description: "Обновить состояние всем открытым лотам с истекшим сроком"
+
+
+loan_lot_expire_pending:
+  cron: "0 * * * *"
+  queue: critical
+  class: LoanLotExpirePending
+  args:
+  description: "Обновить состояние всем ожидающим взятия лотам с истекшим сроком"
+
+
+update_rating:
+  cron: "0 * * * *"
+  queue: users
+  class: UpdateRating
+  args:
+  description: "Обновить рейтинг всем пользователям"
+
+user_and_email_expire:
+  cron: "30 * * * *"
+  queue: users
+  class: UserAndEmailExpire
+  args:
+  description: "Очистить базу данных от пользователей зарегистрировавшихся и не подтвердивших свой емейл"
+
+portfolio_3_days_passed:
+  cron: "50 * * * *"
+  queue: events
+  class: Portfolio3DaysPassed
+  args:
+  description: "Напоминания ориджинированым инвесторам про портфель"
+
+lot_1_day_passed:
+  cron: "40 * * * *"
+  queue: events
+  class: Lot1DayPassed
+  args:
+  description: "Напоминания заемщикам про открытый лот"
+
+# Каждый день
+update_badges:
+  cron: "1 0 * * *"
+  queue: high
+  class: UpdateBadges
+  args:
+  description: "Обновить бейджи по просроченным платежам"
+
+expire_payments:
+  cron: "0 0 * * *"
+  queue: high
+  class: ExpirePayments
+  args:
+  description: "Пометить просроченные платежи"
+
+reindex_faq:
+  cron: "0 8 * * *"
+  queue: low
+  class: ReindexFaq
+  args:
+  description: "Переиндексировать FAQ"
+
+faker_activate_lots:
+  cron: "0 1 * * *"
+  queue: faker
+  class: FakerActivateLots
+  args: 3
+  description: "Активировать 3 открытых fake-овых лота"
+
+reindex_institutes_and_locations:
+  cron: "0 4 * * *"
+  queue: reindex
+  class: ReindexInstitutesAndLocations
+  args:
+  description: "Переиндексировать институты и локации (города)"
+
+suggest_friends:
+  cron: "0 12 * * *"
+  queue: events
+  class: SuggestFriends
+  args:
+  description: "Еженедельный suggest друзей"
+
+refresh_hot_lots:
+  cron: "15 0 * * *"
+  queue: events
+  class: RefreshHotLots
+  args:
+  description: "Горячие лоты"
+
+remind_about_payment:
+  cron: "0 12 * * *"
+  queue: low
+  class: RemindAboutPayment
+  args:
+  description: "Друзья напомнят: Рассылка друзьям"
+
+validate_data:
+  cron: "0 4 * * *"
+  class: ValidateData
+  queue: validator
+  args:
+  description: "Проверка всех данных в базе данных"
+
+update_investors_status:
+  cron: "2 0 * * *"
+  class: UpdateInvestorsStatus
+  queue: users
+  args:
+  description: "Обновление статусов у инвесторов с истекшим сроком"
+
+nobody_month_passed:
+  cron: "0 12 * * *"
+  class: NobodyMonthPassed
+  queue: events
+  args:
+  description: "Напоминание неопределившимся пользователям, месяц не заходившим на сайт"
+
+investor_monthly_stats:
+  cron: "0 12 * * *"
+  class: InvestorMonthlyStats
+  queue: events
+  args:
+  description: "Напоминание инвесторам, месяц не инвестировавшим"
+
+payment_1_day_expired:
+  cron: "0 1 * * *"
+  class: Payment1DayExpired
+  queue: events
+  args:
+  description: "Напоминание о просрочке платежа на 1 день"
+
+payment_7_days_expired:
+  cron: "0 1 * * *"
+  class: Payment7DaysExpired
+  queue: events
+  args:
+  description: "Напоминание о просрочке платежа на 7 дней"
+
+payment_14_days_expired:
+  cron: "0 1 * * *"
+  class: Payment14DaysExpired
+  queue: events
+  args:
+  description: "Напоминание о просрочке платежа на 14 дней"
+
+payment_29_days_expired:
+  cron: "0 1 * * *"
+  class: Payment29DaysExpired
+  queue: events
+  args:
+  description: "Напоминание о просрочке платежа на 29 дней"
+
+# Каждый месяц
+
+do_raise:
+  cron: "0 0 1 * *"
+  queue: events
+  class: DoRaise
+  args:
+  description: "Проверка отправления на почту информации про упавшие задачи"
+
+update_investment_counters:
+  cron: "0 0 1 * *"
+  queue: critical
+  class: MonthInvestmentCounters
+  args:
+  description: "Обновление счетчиков доходности инвесторов в следующем месяце"
+
+
+# Staging
+
+faker_gen_users:
+  cron: "0 */6 * * *"
+  class: FakerGenUsers
+  queue: faker
+  args: 10
+  rails_env: staging
+  description: "Создание fake-овых пользователей"
+
+faker_gen_friends:
+  cron: "1 */6 * * *"
+  class: FakerGenFriends
+  queue: faker
+  args: [10, 1]
+  rails_env: staging
+  description: "Создание fake-овых друзей"
+
+faker_gen_lots:
+  cron: "2 */6 * * *"
+  class: FakerGenLots
+  queue: faker
+  args: 5
+  rails_env: staging
+  description: "Создание fake-овых лотов"
+
+faker_gen_portfolios:
+  cron: "3 */6 * * *"
+  class: FakerGenPortfolios
+  queue: faker
+  args: 5
+  rails_env: staging
+  description: "Создание fake-овых портфелей"
+
+users_online:
+  cron: "*/5 * * * *"
+  queue: faker
+  class: UsersOnline
+  args:
+  description: "Сделать 10 случайных пользователей онлайн"

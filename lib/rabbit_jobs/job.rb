@@ -21,7 +21,7 @@ module RabbitJobs::Job
     def run_perform
       if @child_pid = fork
         srand # Reseeding
-        log "Forked #{@child_pid} at #{Time.now} to process #{self.class}.perform(#{ params.map(&:inspect).join(', ') })"
+        RabbitJobs::Logger.log "Forked #{@child_pid} at #{Time.now} to process #{self.class}.perform(#{ params.map(&:inspect).join(', ') })"
         Process.wait(@child_pid)
         yield if block_given?
       else

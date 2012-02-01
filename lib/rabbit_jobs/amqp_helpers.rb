@@ -4,7 +4,6 @@ module RabbitJobs
   module AmqpHelpers
 
     # Calls given block with initialized amqp
-
     def amqp_with_exchange(&block)
       raise ArgumentError unless block
 
