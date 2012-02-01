@@ -1,6 +1,6 @@
 # RabbitJobs
 
-TODO: Write a gem description
+Schedule jobs on rabbitmq and run them in background.
 
 ## Installation
 
@@ -18,7 +18,7 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+TODO: Write usage instructions here.
 
 ## Contributing
 
