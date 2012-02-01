@@ -30,9 +30,32 @@ module RabbitJobs::Job
           self.class.perform(*params)
           # log 'after perform'
         rescue
-          puts $!.inspect
+          if RabbitJobs.config.error_log
+            RabbitJobs::Logger.log $!.inspect
+          end
+
+          run_on_error_hooks($!)
         end
         exit!
+      end
+    end
+
+    def run_on_error_hooks(error)
+      if self.class.rj_on_error_hooks
+        self.class.rj_on_error_hooks.each do |proc_or_symbol|
+          if proc_or_symbol.is_a?(Symbol)
+            self.send(proc_or_symbol, error, *params)
+          else
+            case proc_or_symbol.arity
+            when 0
+              proc_or_symbol.call()
+            when 1
+              proc_or_symbol.call(error)
+            else
+              proc_or_symbol.call(error, *params)
+            end
+          end
+        end
       end
     end
 
@@ -61,11 +84,19 @@ module RabbitJobs::Job
   end
 
   module ClassMethods
-    attr_accessor :rj_expires_in
+    attr_accessor :rj_expires_in, :rj_on_error_hooks
 
     # DSL method for jobs
     def expires_in(seconds)
      @rj_expires_in = seconds
+    end
+
+    def on_error(*hooks)
+      hooks.each do |proc_or_symbol|
+        raise ArgumentError unless proc_or_symbol && ( proc_or_symbol.is_a?(Proc) || proc_or_symbol.is_a?(Symbol) )
+        @rj_on_error_hooks ||= []
+        @rj_on_error_hooks << proc_or_symbol
+      end
     end
   end
 

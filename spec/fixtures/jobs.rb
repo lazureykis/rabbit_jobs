@@ -27,3 +27,20 @@ class ExpiredJob
 
   end
 end
+
+class JobWithErrorHook
+  include RabbitJobs::Job
+  on_error :first_hook, lambda { puts "second hook" }, :last_hook
+
+  def first_hook(error)
+    puts 'first hook'
+  end
+
+  def last_hook(error)
+    puts 'last hook'
+  end
+
+  def self.perform
+    raise "Job raised an error at #{Time.now}"
+  end
+end

@@ -11,6 +11,7 @@ describe RabbitJobs::Worker do
 
     5.times { RabbitJobs.publish(PrintTimeJob, nil, Time.now) }
     5.times { RabbitJobs.publish(ExpiredJob, { :expires_at => Time.now - 10 }) }
+    1.times { RabbitJobs.publish(JobWithErrorHook) }
     worker = RabbitJobs::Worker.new
 
     worker.work(1) # work for 1 second
