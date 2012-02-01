@@ -4,8 +4,6 @@ require 'rufus/scheduler'
 require 'thwait'
 require 'yaml'
 
-# -*- encoding : utf-8 -*-
-
 module RabbitJobs
   class Scheduler
     include AmqpHelpers
@@ -42,7 +40,7 @@ module RabbitJobs
             if !config[interval_type].nil? && config[interval_type].length > 0
               rufus_scheduler.send(interval_type, config[interval_type]) do
                 log! "queueing #{config['class']} (#{name})"
-                enqueue_from_config(config)
+                publish_from_config(config)
               end
               interval_defined = true
               break
@@ -53,29 +51,21 @@ module RabbitJobs
           end
         end
       end
-      puts
     end
 
-    # Returns true if the given schedule config hash matches the current
-    # ENV['RAILS_ENV']
+    # Returns true if the given schedule config hash matches the current ENV['RAILS_ENV']
     def rails_env_matches?(config)
       config['rails_env'] && ENV['RAILS_ENV'] && config['rails_env'].gsub(/\s/,'').split(',').include?(ENV['RAILS_ENV'])
     end
 
-    # Enqueues a job based on a config hash
-    def enqueue_from_config(config)
-      puts
-      puts "enqueue_from_config: #{config.inspect}"
+    # Publish a job based on a config hash
+    def publish_from_config(config)
       args = config['args'] || config[:args] || []
       klass_name = config['class'] || config[:class]
       params = args.is_a?(Hash) ? [args] : Array(args)
       queue = config['queue'] || config[:queue] || RabbitJobs.config.routing_keys.first
-      puts "queue: #{queue}"
-      puts "klass_name: #{klass_name.constantize}"
-      puts "queue: #{queue}"
-      puts "params: #{params}"
-      puts "RabbitJobs.config.routing_keys: #{RabbitJobs.config.routing_keys}"
 
+      log "publishing #{config}"
       RabbitJobs.publish_to(queue, klass_name.constantize, nil, *params)
     rescue
       log! "Failed to enqueue #{klass_name}:\n #{$!}\n params = #{params.inspect}"
@@ -113,12 +103,12 @@ module RabbitJobs
         if time > 0
           # for debugging
           EM.add_timer(time) do
-            puts "Stopping scheduler..."
+            log "Stopping scheduler..."
             self.shutdown
           end
         end
 
-        puts "Scheduler started."
+        log "Scheduler started."
 
         EM.add_periodic_timer(1) do
           check_shutdown.call
@@ -127,6 +117,7 @@ module RabbitJobs
     end
 
     def shutdown
+      log "Stopping scheduler..."
       @shutdown = true
     end
 

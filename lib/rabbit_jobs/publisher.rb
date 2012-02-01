@@ -20,14 +20,15 @@ module RabbitJobs
 
       job = klass.new(*params)
       job.opts = opts
-      publish_job_to(routing_key, job)
+
+      if defined?(EM) && EM.reactor_running?
+        em_publish_job_to(routing_key, job)
+      else
+        publish_job_to(routing_key, job)
+      end
     end
 
     def publish_job_to(routing_key, job)
-      puts "routing_key: #{routing_key.inspect}"
-      puts "job: #{job.inspect}"
-      puts "EM.reactor_running? #{EM.reactor_running?}"
-
       amqp_with_exchange do |connection, exchange|
 
         queue = make_queue(exchange, routing_key)
@@ -35,12 +36,24 @@ module RabbitJobs
         job.opts['created_at'] = Time.now.to_s
 
         payload = job.payload
-        puts "publishing"
         exchange.publish(job.payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({routing_key: routing_key})) {
-          puts 'published'
           connection.close {
-            puts 'connection closed'
             EM.stop
+          }
+        }
+      end
+    end
+
+    def em_publish_job_to(routing_key, job)
+      em_amqp_with_exchange do |connection, exchange|
+
+        queue = make_queue(exchange, routing_key)
+
+        job.opts['created_at'] = Time.now.to_s
+
+        payload = job.payload
+        exchange.publish(job.payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({routing_key: routing_key})) {
+          connection.close {
           }
         }
       end
