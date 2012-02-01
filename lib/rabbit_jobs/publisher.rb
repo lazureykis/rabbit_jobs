@@ -33,7 +33,7 @@ module RabbitJobs
 
         queue = make_queue(exchange, routing_key)
 
-        job.opts['created_at'] = Time.now.to_s
+        job.opts['created_at'] = Time.now.to_i
 
         payload = job.payload
         exchange.publish(job.payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({routing_key: routing_key})) {
@@ -48,7 +48,7 @@ module RabbitJobs
       em_amqp_with_exchange do |connection, exchange|
         queue = make_queue(exchange, routing_key)
 
-        job.opts['created_at'] = Time.now.to_s
+        job.opts['created_at'] = Time.now.to_i
 
         payload = job.payload
         exchange.publish(job.payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({routing_key: routing_key})) {

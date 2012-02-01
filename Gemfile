@@ -2,9 +2,9 @@ source :rubygems
 
 gemspec
 
-gem 'rabbit_jobs', :path => './'
-
 group :development do
+  gem 'actionmailer', '>= 3.0'
+
   gem 'rspec', '~> 2.8'
   gem 'rr'
   gem 'autotest'

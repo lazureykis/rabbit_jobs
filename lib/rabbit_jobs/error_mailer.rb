@@ -5,7 +5,7 @@ module RabbitJobs
     include RabbitJobs::Logger
 
     def self.enabled?
-      RabbitJobs.config.mail_errors_from && !RabbitJobs.config.mail_errors_from.empty?
+      !!RabbitJobs.config.mail_errors_from && !RabbitJobs.config.mail_errors_from.empty?
     end
 
     def self.send(job, error = $!)

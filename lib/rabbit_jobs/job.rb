@@ -68,14 +68,14 @@ module RabbitJobs::Job
     end
 
     def expires?
-      !!self.expires_in
+      self.expires_in && self.expires_in > 0
     end
 
     def expired?
       if self.opts['expires_at']
-        Time.now > Time.new(opts['expires_at'])
+        Time.now.to_i > opts['expires_at'].to_i
       elsif expires? && opts['created_at']
-        Time.now > (Time.new(opts['created_at']) + expires_in)
+        Time.now.to_i > (opts['created_at'].to_i + expires_in.to_i)
       else
         false
       end
@@ -87,7 +87,7 @@ module RabbitJobs::Job
 
     # DSL method for jobs
     def expires_in(seconds)
-     @rj_expires_in = seconds
+     @rj_expires_in = seconds.to_i
     end
 
     def on_error(*hooks)
