@@ -46,7 +46,6 @@ module RabbitJobs
 
     def em_publish_job_to(routing_key, job)
       em_amqp_with_exchange do |connection, exchange|
-
         queue = make_queue(exchange, routing_key)
 
         job.opts['created_at'] = Time.now.to_s

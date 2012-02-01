@@ -38,8 +38,8 @@ module RabbitJobs
           interval_types = %w{cron every}
           interval_types.each do |interval_type|
             if !config[interval_type].nil? && config[interval_type].length > 0
+              log "queueing #{config['class']} (#{name})"
               rufus_scheduler.send(interval_type, config[interval_type]) do
-                log! "queueing #{config['class']} (#{name})"
                 publish_from_config(config)
               end
               interval_defined = true
@@ -68,7 +68,7 @@ module RabbitJobs
       log "publishing #{config}"
       RabbitJobs.publish_to(queue, klass_name.constantize, nil, *params)
     rescue
-      log! "Failed to enqueue #{klass_name}:\n #{$!}\n params = #{params.inspect}"
+      log! "Failed to publish #{klass_name}:\n #{$!}\n params = #{params.inspect}"
     end
 
     def rufus_scheduler

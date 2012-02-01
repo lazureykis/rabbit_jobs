@@ -56,9 +56,11 @@ module RabbitJobs
 
           queue.subscribe(ack: true) do |metadata, payload|
             @job = RabbitJobs::Job.parse(payload)
-            @job.run_perform unless @job.expired?
-            metadata.ack
-            processed_count += 1
+            unless @job.expired?
+              @job.run_perform
+              metadata.ack
+              processed_count += 1
+            end
             check_shutdown.call
           end
         end

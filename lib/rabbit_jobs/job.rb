@@ -30,9 +30,8 @@ module RabbitJobs::Job
           self.class.perform(*params)
           # log 'after perform'
         rescue
-          if RabbitJobs.config.error_log
-            RabbitJobs::Logger.log $!.inspect
-          end
+          RabbitJobs::Logger.log($!.inspect) if RabbitJobs.config.error_log
+          RabbitJobs::ErrorMailer.send(self, $!)
 
           run_on_error_hooks($!)
         end
