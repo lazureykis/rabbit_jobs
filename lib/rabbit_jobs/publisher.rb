@@ -58,17 +58,29 @@ module RabbitJobs
       end
     end
 
-    def purge_queue(routing_key)
-      raise ArgumentError unless routing_key
+    def purge_queue(*routing_keys)
+      raise ArgumentError unless routing_keys && routing_keys.count > 0
 
-      amqp_with_queue(routing_key) do |connection, queue|
-        queue.status do |number_of_messages, number_of_consumers|
-          queue.purge {
-            connection.close {
-              EM.stop
-              return number_of_messages
+      amqp_with_exchange do |connection, exchange|
+        queues_purged = routing_keys.count
+
+        messages_count = 0
+        routing_keys.each do |routing_key|
+          queue = exchange.channel.queue(RabbitJobs.config.queue_name(routing_key), RabbitJobs.config[:queues][routing_key])
+          queue.bind(exchange, :routing_key => routing_key)
+
+          queue.status do |number_of_messages, number_of_consumers|
+            messages_count += number_of_messages
+            queue.purge {
+              queues_purged -= 1
+              if queues_purged == 0
+                connection.close {
+                  EM.stop
+                  return messages_count
+                }
+              end
             }
-          }
+          end
         end
       end
     end
