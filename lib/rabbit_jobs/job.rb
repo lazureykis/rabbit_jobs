@@ -26,6 +26,14 @@ module RabbitJobs::Job
         yield if block_given?
       else
         begin
+          after_fork do |server, worker|
+            if defined?(ActiveRecord::Base)
+              ActiveRecord::Base.establish_connection
+            end
+            if defined?(MongoMapper)
+              MongoMapper.database.connection.connect_to_master
+            end
+          end
           # log 'before perform'
           self.class.perform(*params)
           # log 'after perform'
