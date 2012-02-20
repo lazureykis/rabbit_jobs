@@ -25,6 +25,4 @@ module RabbitJobs
   end
 end
 
-module RJ
-  include RabbitJobs
-end
+RJ = RabbitJobs
