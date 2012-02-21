@@ -2,8 +2,18 @@
 # will give you the resque tasks
 
 require 'rabbit_jobs'
+require 'logger'
 
 namespace :rj do
+  def initialize_rj_daemon(daemon)
+    daemon.pidfile = ENV['PIDFILE']
+    daemon.background = %w(yes true).include? ENV['BACKGROUND']
+    RJ.logger = ::Logger.new(ENV['LOGFILE']) if ENV['LOGFILE']
+    RJ.logger.level = ENV['VERBOSE'] ? Logger::INFO : Logger::WARN
+
+    worker
+  end
+
   task :setup
 
   desc "Start a Rabbit Jobs worker"
@@ -11,30 +21,14 @@ namespace :rj do
     require 'rabbit_jobs'
 
     queues = (ENV['QUEUES'] || ENV['QUEUE']).to_s.split(',')
-
-    begin
-      worker = RabbitJobs::Worker.new(*queues)
-      worker.pidfile = ENV['PIDFILE']
-      worker.background = %w(yes true).include? ENV['BACKGROUND']
-      RabbitJobs::Logger.verbose = true if ENV['VERBOSE']
-      # worker.very_verbose = ENV['VVERBOSE']
-    end
+    worker = initialize_rj_service(RJ::Worker.new(*queues))
 
     worker.work
   end
 
   desc "Start a Rabbit Jobs scheduler"
   task :scheduler => [ :preload, :setup ] do
-
-    queues = (ENV['SCHEDULE']).to_s.split(',')
-
-    begin
-      scheduler = RabbitJobs::Scheduler.new(*queues)
-      scheduler.pidfile = ENV['PIDFILE']
-      scheduler.background = %w(yes true).include? ENV['BACKGROUND']
-      RabbitJobs::Logger.verbose = true if ENV['VERBOSE']
-      # worker.very_verbose = ENV['VVERBOSE']
-    end
+    scheduler = initialize_rj_service(RabbitJobs::Scheduler.new)
 
     scheduler.work
   end

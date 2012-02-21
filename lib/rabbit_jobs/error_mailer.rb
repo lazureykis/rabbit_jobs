@@ -2,8 +2,6 @@
 
 module RabbitJobs
   class ErrorMailer
-    include RabbitJobs::Logger
-
     def self.enabled?
       !!RabbitJobs.config.mail_errors_from && !RabbitJobs.config.mail_errors_from.empty?
     end
@@ -30,7 +28,7 @@ module RabbitJobs
       begin
         letter.deliver
       rescue
-        log $!.inspect
+        RJ.logger.error $!.inspect
       end
     end
   end

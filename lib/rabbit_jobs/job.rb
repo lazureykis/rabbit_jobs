@@ -4,11 +4,9 @@ require 'digest/md5'
 
 module RabbitJobs::Job
   extend RabbitJobs::Helpers
-  extend RabbitJobs::Logger
   extend self
 
   def self.included(base)
-    include RabbitJobs::Logger
     base.extend (ClassMethods)
 
     def initialize(*perform_params)
@@ -21,7 +19,7 @@ module RabbitJobs::Job
     def run_perform
       if @child_pid = fork
         srand # Reseeding
-        RabbitJobs::Logger.log "Forked #{@child_pid} at #{Time.now} to process #{self.class}.perform(#{ params.map(&:inspect).join(', ') })"
+        RJ.logger.info "Forked #{@child_pid} at #{Time.now} to process #{self.class}.perform(#{ params.map(&:inspect).join(', ') })"
         Process.wait(@child_pid)
         yield if block_given?
       else
@@ -32,11 +30,11 @@ module RabbitJobs::Job
           if defined?(MongoMapper)
             MongoMapper.database.connection.connect_to_master
           end
-          # log 'before perform'
+          # RJ.logger.debug 'before perform'
           self.class.perform(*params)
-          # log 'after perform'
+          # RJ.logger.debug 'after perform'
         rescue
-          RabbitJobs::Logger.log($!.inspect) if RabbitJobs.config.error_log
+          RJ.logger.warn($!.inspect)
           RabbitJobs::ErrorMailer.send(self, $!)
 
           run_on_error_hooks($!)
@@ -113,10 +111,10 @@ module RabbitJobs::Job
       job.opts = encoded['opts']
       job
     rescue
-      log "JOB INIT ERROR at #{Time.now.to_s}:"
-      log $!.inspect
-      log $!.backtrace
-      log "message: #{payload.inspect}"
+      RJ.logger.error "JOB INIT ERROR at #{Time.now.to_s}:"
+      RJ.logger.error $!.inspect
+      RJ.logger.error $!.backtrace
+      RJ.logger.error "message: #{payload.inspect}"
       # Mailer.send(klass_name, params, $!)
       # raise $!
     end

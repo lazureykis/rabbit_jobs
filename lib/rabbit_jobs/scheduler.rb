@@ -7,7 +7,6 @@ require 'yaml'
 module RabbitJobs
   class Scheduler
     include AmqpHelpers
-    include Logger
 
     attr_accessor :pidfile, :background, :schedule
 
@@ -33,12 +32,12 @@ module RabbitJobs
         # job should be scheduled regardless of what ENV['RAILS_ENV'] is set
         # to.
         if config['rails_env'].nil? || rails_env_matches?(config)
-          log! "Scheduling #{name} "
+          RJ.logger.info "Scheduling #{name} "
           interval_defined = false
           interval_types = %w{cron every}
           interval_types.each do |interval_type|
             if !config[interval_type].nil? && config[interval_type].length > 0
-              log "queueing #{config['class']} (#{name})"
+              RJ.logger.info "queueing #{config['class']} (#{name})"
               rufus_scheduler.send(interval_type, config[interval_type]) do
                 publish_from_config(config)
               end
@@ -47,7 +46,7 @@ module RabbitJobs
             end
           end
           unless interval_defined
-            log! "no #{interval_types.join(' / ')} found for #{config['class']} (#{name}) - skipping"
+            RJ.logger.warn "no #{interval_types.join(' / ')} found for #{config['class']} (#{name}) - skipping"
           end
         end
       end
@@ -65,10 +64,10 @@ module RabbitJobs
       params = args.is_a?(Hash) ? [args] : Array(args)
       queue = config['queue'] || config[:queue] || RabbitJobs.config.routing_keys.first
 
-      log "publishing #{config}"
+      RJ.logger.info "publishing #{config}"
       RabbitJobs.publish_to(queue, klass_name.constantize, nil, *params)
     rescue
-      log! "Failed to publish #{klass_name}:\n #{$!}\n params = #{params.inspect}"
+      RJ.logger.warn "Failed to publish #{klass_name}:\n #{$!}\n params = #{params.inspect}"
     end
 
     def rufus_scheduler
@@ -107,7 +106,7 @@ module RabbitJobs
           end
         end
 
-        log "Scheduler started."
+        RJ.logger.info "Scheduler started."
 
         EM.add_periodic_timer(1) do
           check_shutdown.call
@@ -116,7 +115,7 @@ module RabbitJobs
     end
 
     def shutdown
-      log "Stopping scheduler..."
+      RJ.logger.warn "Stopping scheduler..."
       @shutdown = true
     end
 
@@ -146,11 +145,11 @@ module RabbitJobs
 
     def kill_child
       if @job && @job.child_pid
-        # log! "Killing child at #{@child}"
+        # RJ.logger.warn "Killing child at #{@child}"
         if Kernel.system("ps -o pid,state -p #{@job.child_pid}")
           Process.kill("KILL", @job.child_pid) rescue nil
         else
-          # log! "Child #{@child} not found, restarting."
+          # RJ.logger.warn "Child #{@child} not found, restarting."
           # shutdown
         end
       end

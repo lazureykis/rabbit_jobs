@@ -3,7 +3,6 @@
 module RabbitJobs
   class Worker
     include AmqpHelpers
-    include Logger
 
     attr_accessor :pidfile, :background
 
@@ -39,8 +38,8 @@ module RabbitJobs
 
         check_shutdown = Proc.new {
           if @shutdown
-            log "Processed jobs: #{processed_count}"
-            log "Stopping worker..."
+            RJ.logger.info "Processed jobs: #{processed_count}"
+            RJ.logger.info "Stopping worker..."
 
             connection.close {
               File.delete(self.pidfile) if self.pidfile
@@ -52,7 +51,7 @@ module RabbitJobs
         queues.each do |routing_key|
           queue = make_queue(exchange, routing_key)
 
-          log "Worker ##{Process.pid} <= #{exchange.name}##{routing_key}"
+          RJ.logger.info "Worker ##{Process.pid} <= #{exchange.name}##{routing_key}"
 
           explicit_ack = !!RJ.config[:queues][routing_key][:ack]
 
@@ -63,7 +62,7 @@ module RabbitJobs
               @job.run_perform
               processed_count += 1
             else
-              log "Job expired: #{@job.inspect}"
+              RJ.logger.info "Job expired: #{@job.inspect}"
             end
 
             metadata.ack if explicit_ack
@@ -115,11 +114,11 @@ module RabbitJobs
 
     def kill_child
       if @job && @job.child_pid
-        # log! "Killing child at #{@child}"
+        # RJ.logger.info "Killing child at #{@child}"
         if Kernel.system("ps -o pid,state -p #{@job.child_pid}")
           Process.kill("KILL", @job.child_pid) rescue nil
         else
-          # log! "Child #{@child} not found, restarting."
+          # RJ.logger.info "Child #{@child} not found, restarting."
           # shutdown
         end
       end
