@@ -54,13 +54,17 @@ module RabbitJobs
 
           log "Worker ##{Process.pid} <= #{exchange.name}##{routing_key}"
 
-          queue.subscribe(ack: true) do |metadata, payload|
+          explicit_ack = !!RJ.config[:queues][routing_key][:ack]
+
+          queue.subscribe(ack: explicit_ack, timeout: 60*60) do |metadata, payload|
             @job = RabbitJobs::Job.parse(payload)
+
             unless @job.expired?
               @job.run_perform
-              metadata.ack
+              metadata.ack if explicit_ack
               processed_count += 1
             end
+
             check_shutdown.call
           end
         end
