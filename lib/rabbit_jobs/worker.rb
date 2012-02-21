@@ -57,7 +57,7 @@ module RabbitJobs
           explicit_ack = !!RJ.config[:queues][routing_key][:ack]
 
           queue.subscribe(ack: explicit_ack) do |metadata, payload|
-            @job = RabbitJobs::Job.parse(payload)
+            @job = RJ::Job.parse(payload)
 
             unless @job.expired?
               @job.run_perform

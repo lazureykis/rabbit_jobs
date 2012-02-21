@@ -10,7 +10,7 @@ module RabbitJobs
     extend AmqpHelpers
 
     def publish(klass, opts = {}, *params)
-      key = RabbitJobs.config.routing_keys.first
+      key = RJ.config.routing_keys.first
       publish_to(key, klass, opts, *params)
     end
 
@@ -31,12 +31,12 @@ module RabbitJobs
     def publish_job_to(routing_key, job)
       amqp_with_exchange do |connection, exchange|
 
-        queue = make_queue(exchange, routing_key)
+        queue = make_queue(exchange, routing_key.to_s)
 
         job.opts['created_at'] = Time.now.to_i
 
         payload = job.payload
-        exchange.publish(job.payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({routing_key: routing_key})) {
+        exchange.publish(job.payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({routing_key: routing_key.to_s})) {
           connection.close {
             EM.stop
           }
@@ -46,12 +46,12 @@ module RabbitJobs
 
     def em_publish_job_to(routing_key, job)
       em_amqp_with_exchange do |connection, exchange|
-        queue = make_queue(exchange, routing_key)
+        queue = make_queue(exchange, routing_key.to_s)
 
         job.opts['created_at'] = Time.now.to_i
 
         payload = job.payload
-        exchange.publish(job.payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({routing_key: routing_key})) {
+        exchange.publish(job.payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({routing_key: routing_key.to_s})) {
           connection.close {
           }
         }
