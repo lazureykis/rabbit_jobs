@@ -66,6 +66,7 @@ module RabbitJobs
 
         messages_count = 0
         routing_keys.each do |routing_key|
+          routing_key = routing_key.to_s
           queue = exchange.channel.queue(RabbitJobs.config.queue_name(routing_key), RabbitJobs.config[:queues][routing_key])
           queue.bind(exchange, :routing_key => routing_key)
 
