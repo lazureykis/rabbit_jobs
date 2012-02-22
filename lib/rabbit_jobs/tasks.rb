@@ -11,7 +11,7 @@ namespace :rj do
     RJ.logger = ::Logger.new(ENV['LOGFILE']) if ENV['LOGFILE']
     RJ.logger.level = ENV['VERBOSE'] ? Logger::INFO : Logger::WARN
 
-    worker
+    daemon
   end
 
   task :setup
@@ -21,14 +21,14 @@ namespace :rj do
     require 'rabbit_jobs'
 
     queues = (ENV['QUEUES'] || ENV['QUEUE']).to_s.split(',')
-    worker = initialize_rj_service(RJ::Worker.new(*queues))
+    worker = initialize_rj_daemon(RJ::Worker.new(*queues))
 
     worker.work
   end
 
   desc "Start a Rabbit Jobs scheduler"
   task :scheduler => [ :preload, :setup ] do
-    scheduler = initialize_rj_service(RabbitJobs::Scheduler.new)
+    scheduler = initialize_rj_daemon(RabbitJobs::Scheduler.new)
 
     scheduler.work
   end
