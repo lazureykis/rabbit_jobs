@@ -31,4 +31,9 @@ describe RabbitJobs::Publisher do
     RabbitJobs.publish_to(:rspec_queue3, TestJob)
     RabbitJobs::Publisher.purge_queue(:rspec_queue, :rspec_queue2, :rspec_queue3).should == 3
   end
+
+  it 'should publish job with *params' do
+    RabbitJobs.publish_to(:rspec_queue, JobWithArgsArray, nil, 'first value', :some_symbol, 123, 'and string')
+    RabbitJobs::Publisher.purge_queue(:rspec_queue).should == 1
+  end
 end
