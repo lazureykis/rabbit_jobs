@@ -23,6 +23,7 @@ module RabbitJobs::Job
         Process.wait(@child_pid)
         yield if block_given?
       else
+        $0 = "##{@child_pid} #{self.class}.perform(#{ params.map(&:inspect).join(', ') }) #{$0}"
         begin
           if defined?(ActiveRecord::Base)
             ActiveRecord::Base.establish_connection
