@@ -18,6 +18,7 @@ Gem::Specification.new do |gem|
   gem.version       = RabbitJobs::VERSION
 
   gem.add_dependency "amqp", "~> 0.9"
+  gem.add_dependency "bunny", "~> 0.7"
   gem.add_dependency "rake"
   gem.add_dependency "rufus-scheduler", "~> 2.0"
 end

@@ -3,6 +3,7 @@
 require 'json'
 require 'amqp'
 require 'eventmachine'
+require 'bunny'
 
 module RabbitJobs
   module Publisher
@@ -15,6 +16,39 @@ module RabbitJobs
     end
 
     def publish_to(routing_key, klass, *params)
+      raise ArgumentError unless klass && routing_key && klass.is_a?(Class) && (routing_key.is_a?(Symbol) || routing_key.is_a?(String))
+
+      job = klass.new(*params)
+      job.opts = {'created_at' => Time.now.to_i}
+
+      b = Bunny.new(host: RJ.config.host, logging: false)
+      b.start
+
+      exchange = b.exchange(RJ.config[:exchange], RJ.config[:exchange_params])
+      queue = b.queue(RJ.config.queue_name(routing_key), RJ.config[:queues][routing_key.to_s])
+      queue.bind(exchange)
+
+      exchange.publish(job.payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({key: routing_key.to_s}))
+      b.stop
+    end
+
+    def purge_queue(*routing_keys)
+      raise ArgumentError unless routing_keys && routing_keys.count > 0
+
+      b = Bunny.new(host: RJ.config.host, logging: false)
+      b.start
+
+      messages_count = 0
+      routing_keys.each do |routing_key|
+        queue = b.queue(RJ.config.queue_name(routing_key), RJ.config[:queues][routing_key.to_s])
+        messages_count += queue.status[:message_count]
+        queue.purge
+      end
+      b.stop
+      return messages_count
+    end
+
+    def publish_to2(routing_key, klass, *params)
       raise ArgumentError unless klass && routing_key && klass.is_a?(Class) && (routing_key.is_a?(Hash) || routing_key.is_a?(String))
 
       job = klass.new(*params)
@@ -40,7 +74,7 @@ module RabbitJobs
       end
     end
 
-    def purge_queue(*routing_keys)
+    def purge_queue2(*routing_keys)
       raise ArgumentError unless routing_keys && routing_keys.count > 0
 
       dont_stop_em = defined?(EM) && EM.reactor_running?
@@ -54,8 +88,6 @@ module RabbitJobs
           routing_key = routing_key.to_s
           queue = exchange.channel.queue(RabbitJobs.config.queue_name(routing_key), RabbitJobs.config[:queues][routing_key])
           queue.bind(exchange, :routing_key => routing_key)
-
-          puts '-1'
           queue.status do |number_of_messages, number_of_consumers|
             messages_count += number_of_messages
             queue.purge {

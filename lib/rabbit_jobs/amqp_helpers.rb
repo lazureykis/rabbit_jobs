@@ -9,7 +9,8 @@ module RabbitJobs
 
       connection = AMQP.connection
       if connection && connection.open?
-        exchange = connection.channel.direct(RJ.config[:exchange], RJ.config[:exchange_params])
+        channel = AMQP::Channel.new(connection)
+        exchange = channel.direct(RJ.config[:exchange], RJ.config[:exchange_params])
         # go work
         block.call(connection, exchange)
 
