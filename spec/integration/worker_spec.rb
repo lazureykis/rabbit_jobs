@@ -16,4 +16,16 @@ describe RabbitJobs::Worker do
 
     worker.work(1) # work for 1 second
   end
+
+  it 'should allow to publish jobs from worker' do
+    RabbitJobs.configure do |c|
+      c.exchange 'test_durable', auto_delete: false, durable: true
+      c.queue 'rspec_durable_queue', auto_delete: false, durable: true, ack: true
+    end
+
+    RabbitJobs.publish(JobWithPublish)
+    worker = RabbitJobs::Worker.new
+
+    worker.work(1) # work for 1 second
+  end
 end

@@ -28,6 +28,19 @@ class ExpiredJob
   end
 end
 
+class JobWithPublish
+  include RJ::Job
+
+  def self.perform(param = 0)
+    if param < 5
+      puts "publishing job #{param}"
+      RJ.publish JobWithPublish, param + 1
+    else
+      puts "processing job #{param}"
+    end
+  end
+end
+
 class JobWithErrorHook
   include RJ::Job
   on_error :first_hook, lambda { puts "second hook" }, :last_hook

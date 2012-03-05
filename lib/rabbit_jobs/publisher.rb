@@ -15,20 +15,15 @@ module RabbitJobs
     end
 
     def publish_to(routing_key, klass, opts = {}, *params)
-      raise ArgumentError unless klass && routing_key
+      raise ArgumentError unless klass && routing_key && klass.is_a?(Class)# && (routing_key.is_a?(Hash) || routing_key.is_a?(String))
       opts ||= {}
 
       job = klass.new(*params)
       job.opts = opts
 
-      if defined?(EM) && EM.reactor_running?
-        em_publish_job_to(routing_key, job)
-      else
-        publish_job_to(routing_key, job)
-      end
-    end
+      dont_stop_em = defined?(EM) && EM.reactor_running?
+      dont_close_connection = AMQP.connection && AMQP.connection.open?
 
-    def publish_job_to(routing_key, job)
       amqp_with_exchange do |connection, exchange|
 
         queue = make_queue(exchange, routing_key.to_s)
@@ -37,29 +32,20 @@ module RabbitJobs
 
         payload = job.payload
         exchange.publish(job.payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({routing_key: routing_key.to_s})) {
-          connection.close {
-            EM.stop
-          }
-        }
-      end
-    end
-
-    def em_publish_job_to(routing_key, job)
-      em_amqp_with_exchange do |connection, exchange|
-        queue = make_queue(exchange, routing_key.to_s)
-
-        job.opts['created_at'] = Time.now.to_i
-
-        payload = job.payload
-        exchange.publish(job.payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({routing_key: routing_key.to_s})) {
-          connection.close {
-          }
+          unless dont_close_connection
+            connection.close {
+              EM.stop unless dont_stop_em
+            }
+          end
         }
       end
     end
 
     def purge_queue(*routing_keys)
       raise ArgumentError unless routing_keys && routing_keys.count > 0
+
+      dont_stop_em = defined?(EM) && EM.reactor_running?
+      dont_close_connection = AMQP.connection && AMQP.connection.open?
 
       amqp_with_exchange do |connection, exchange|
         queues_purged = routing_keys.count
@@ -75,10 +61,16 @@ module RabbitJobs
             queue.purge {
               queues_purged -= 1
               if queues_purged == 0
-                connection.close {
-                  EM.stop
+
+                if dont_close_connection
+                  puts 'return with not closed connection'
                   return messages_count
-                }
+                else
+                  connection.close {
+                    EM.stop unless dont_stop_em
+                    return messages_count
+                  }
+                end
               end
             }
           end
