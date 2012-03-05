@@ -16,7 +16,7 @@ describe RabbitJobs::Publisher do
   end
 
   it 'should publish message to queue' do
-    RabbitJobs.publish(TestJob, nil, 'some', 'other', 'params')
+    RabbitJobs.publish(TestJob, 'some', 'other', 'params')
     RabbitJobs::Publisher.purge_queue('rspec_queue').should == 1
   end
 
@@ -33,7 +33,7 @@ describe RabbitJobs::Publisher do
   end
 
   it 'should publish job with *params' do
-    RabbitJobs.publish_to(:rspec_queue, JobWithArgsArray, nil, 'first value', :some_symbol, 123, 'and string')
+    RabbitJobs.publish_to(:rspec_queue, JobWithArgsArray, 'first value', :some_symbol, 123, 'and string')
     RabbitJobs::Publisher.purge_queue(:rspec_queue).should == 1
   end
 end

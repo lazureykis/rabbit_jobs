@@ -1,13 +1,13 @@
 do_a_job:
   cron: "* * * * *" # run every minute
   queue: queue_name
-  class: MyJobClass
+  class: TestJob
   args: "string to be passed to MyJobClass.perform"
   description: "Description is not supported yet"
 
 another_job:
   every: 1h # run every 1 hour
   queue: queue_name
-  class: MyJobClass
+  class: TestJob
   args: "string to be passed to MyJobClass.perform"
   description: "Description is not supported yet"

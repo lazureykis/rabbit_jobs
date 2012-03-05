@@ -17,12 +17,12 @@ require 'logger'
 module RabbitJobs
   extend self
 
-  def publish(klass, opts = {}, *params)
-    RabbitJobs::Publisher.publish(klass, opts, *params)
+  def publish(klass, *params)
+    RabbitJobs::Publisher.publish(klass, *params)
   end
 
-  def publish_to(routing_key, klass, opts = {}, *params)
-    RabbitJobs::Publisher.publish_to(routing_key, klass, opts, *params)
+  def publish_to(routing_key, klass, *params)
+    RabbitJobs::Publisher.publish_to(routing_key, klass, *params)
   end
 
   attr_writer :logger

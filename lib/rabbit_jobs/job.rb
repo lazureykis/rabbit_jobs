@@ -10,7 +10,7 @@ module RabbitJobs::Job
     base.extend (ClassMethods)
 
     def initialize(*perform_params)
-      self.params = *perform_params
+      self.params = perform_params
       self.opts = {}
     end
 
@@ -35,10 +35,10 @@ module RabbitJobs::Job
           self.class.perform(*params)
           # RJ.logger.debug 'after perform'
         rescue
-          RJ.logger.warn($!.inspect)
-          RabbitJobs::ErrorMailer.send(self, $!)
-
+          RJ.logger.warn(self.inspect)
+          RJ.logger.warn([$!.inspect, $!.backtrace.to_a].join("\n"))
           run_on_error_hooks($!)
+          RabbitJobs::ErrorMailer.send(self, $!)
         end
         exit!
       end
@@ -47,17 +47,18 @@ module RabbitJobs::Job
     def run_on_error_hooks(error)
       if self.class.rj_on_error_hooks
         self.class.rj_on_error_hooks.each do |proc_or_symbol|
+          proc = proc_or_symbol
           if proc_or_symbol.is_a?(Symbol)
-            self.send(proc_or_symbol, error, *params)
+            proc = self.method(proc_or_symbol)
+          end
+
+          case proc.arity
+          when 0
+            proc.call()
+          when 1
+            proc.call(error)
           else
-            case proc_or_symbol.arity
-            when 0
-              proc_or_symbol.call()
-            when 1
-              proc_or_symbol.call(error)
-            else
-              proc_or_symbol.call(error, *params)
-            end
+            proc.call(error, *params)
           end
         end
       end
@@ -65,7 +66,6 @@ module RabbitJobs::Job
 
     def payload
       {'class' => self.class.to_s, 'opts' => (self.opts || {}), 'params' => params}.to_json
-      # ([self.class.to_s] + params).to_json
     end
 
     def expires_in
@@ -108,7 +108,7 @@ module RabbitJobs::Job
     begin
       encoded = JSON.parse(payload)
       job_klass = constantize(encoded['class'])
-      job = job_klass.new(*encoded['params'])
+      job = encoded['params'].count > 0 ? job_klass.new(*encoded['params']) : job_klass.new
       job.opts = encoded['opts']
       job
     rescue

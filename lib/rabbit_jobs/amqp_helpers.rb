@@ -7,18 +7,26 @@ module RabbitJobs
     def amqp_with_exchange(&block)
       raise ArgumentError unless block
 
-      AMQP.start(host: RJ.config.host) do |connection|
-        channel  = AMQP::Channel.new(connection)
-
-        channel.on_error do |ch, channel_close|
-          puts "Channel-level error: #{channel_close.reply_text}, shutting down..."
-          connection.close { EM.stop }
-        end
-
-        exchange = channel.direct(RJ.config[:exchange], RJ.config[:exchange_params])
-
+      connection = AMQP.connection
+      if connection && connection.open?
+        exchange = connection.channel.direct(RJ.config[:exchange], RJ.config[:exchange_params])
         # go work
         block.call(connection, exchange)
+
+      else
+        AMQP.start(host: RJ.config.host) do |connection|
+
+          channel = AMQP::Channel.new(connection)
+
+          channel.on_error do |ch, channel_close|
+            puts "Channel-level error: #{channel_close.reply_text}, shutting down..."
+            connection.close { EM.stop }
+          end
+
+          exchange = channel.direct(RJ.config[:exchange], RJ.config[:exchange_params])
+          # go work
+          block.call(connection, exchange)
+        end
       end
     end
 

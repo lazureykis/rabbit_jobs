@@ -9,17 +9,16 @@ module RabbitJobs
     extend self
     extend AmqpHelpers
 
-    def publish(klass, opts = {}, *params)
+    def publish(klass, *params)
       key = RJ.config.routing_keys.first
-      publish_to(key, klass, opts, *params)
+      publish_to(key, klass, *params)
     end
 
-    def publish_to(routing_key, klass, opts = {}, *params)
-      raise ArgumentError unless klass && routing_key && klass.is_a?(Class)# && (routing_key.is_a?(Hash) || routing_key.is_a?(String))
-      opts ||= {}
+    def publish_to(routing_key, klass, *params)
+      raise ArgumentError unless klass && routing_key && klass.is_a?(Class) && (routing_key.is_a?(Hash) || routing_key.is_a?(String))
 
       job = klass.new(*params)
-      job.opts = opts
+      job.opts = {}
 
       dont_stop_em = defined?(EM) && EM.reactor_running?
       dont_close_connection = AMQP.connection && AMQP.connection.open?
@@ -56,6 +55,7 @@ module RabbitJobs
           queue = exchange.channel.queue(RabbitJobs.config.queue_name(routing_key), RabbitJobs.config[:queues][routing_key])
           queue.bind(exchange, :routing_key => routing_key)
 
+          puts '-1'
           queue.status do |number_of_messages, number_of_consumers|
             messages_count += number_of_messages
             queue.purge {
