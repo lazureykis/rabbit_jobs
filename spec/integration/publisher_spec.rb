@@ -1,6 +1,7 @@
 # -*- encoding : utf-8 -*-
 require 'spec_helper'
 require 'json'
+require 'benchmark'
 
 describe RabbitJobs::Publisher do
 
@@ -35,5 +36,13 @@ describe RabbitJobs::Publisher do
   it 'should publish job with *params' do
     RabbitJobs.publish_to(:rspec_queue, JobWithArgsArray, 'first value', :some_symbol, 123, 'and string')
     RabbitJobs::Publisher.purge_queue(:rspec_queue).should == 1
+  end
+
+  it 'should publish 1000 messages in one second' do
+    time = Benchmark.measure {
+      1000.times { RabbitJobs.publish_to(:rspec_queue, TestJob) }
+    }
+    RabbitJobs::Publisher.purge_queue(:rspec_queue, :rspec_queue2, :rspec_queue3).should == 1000
+    puts time
   end
 end
