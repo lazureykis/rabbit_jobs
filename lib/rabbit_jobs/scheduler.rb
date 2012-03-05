@@ -64,8 +64,8 @@ module RabbitJobs
       params = args.is_a?(Hash) ? [args] : Array(args)
       queue = config['queue'] || config[:queue] || RabbitJobs.config.routing_keys.first
 
-      RJ.logger.info "publishing #{config}"
-      RabbitJobs.publish_to(queue, klass_name.constantize, nil, *params)
+      RJ.logger.info "publishing #{config} at #{Time.now}"
+      RabbitJobs.publish_to(queue, klass_name, *params)
     rescue
       RJ.logger.warn "Failed to publish #{klass_name}:\n #{$!}\n params = #{params.inspect}"
     end

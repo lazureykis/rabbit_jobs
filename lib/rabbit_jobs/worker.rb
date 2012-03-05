@@ -43,7 +43,10 @@ module RabbitJobs
 
             connection.close {
               File.delete(self.pidfile) if self.pidfile
-              EM.stop { exit! }
+              EM.stop {
+                exit!
+                RJ.logger.close
+              }
             }
           end
         }
