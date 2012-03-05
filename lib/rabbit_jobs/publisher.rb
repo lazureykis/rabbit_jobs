@@ -26,7 +26,6 @@ module RabbitJobs
       queue.bind(exchange)
 
       exchange.publish(job.payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({key: routing_key.to_s}))
-      # b.stop
     end
 
     def purge_queue(*routing_keys)
@@ -38,7 +37,6 @@ module RabbitJobs
         messages_count += queue.status[:message_count]
         queue.purge
       end
-      # b.stop
       return messages_count
     end
 
