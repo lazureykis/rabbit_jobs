@@ -32,7 +32,6 @@ module RabbitJobs
         # job should be scheduled regardless of what ENV['RAILS_ENV'] is set
         # to.
         if config['rails_env'].nil? || rails_env_matches?(config)
-          RJ.logger.info "Scheduling #{name} "
           interval_defined = false
           interval_types = %w{cron every}
           interval_types.each do |interval_type|
