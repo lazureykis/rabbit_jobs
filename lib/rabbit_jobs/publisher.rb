@@ -20,42 +20,48 @@ module RabbitJobs
       raise ArgumentError unless routing_key && (routing_key.is_a?(Symbol) || routing_key.is_a?(String))
 
       begin
-        exchange = bunny.exchange(RJ.config[:exchange], RJ.config[:exchange_params])
-        queue = bunny.queue(RJ.config.queue_name(routing_key), RJ.config[:queues][routing_key.to_s])
-        queue.bind(exchange)
+        with_bunny do |bunny|
+          exchange = bunny.exchange(RJ.config[:exchange], RJ.config[:exchange_params])
+          queue = bunny.queue(RJ.config.queue_name(routing_key), RJ.config[:queues][routing_key.to_s])
+          queue.bind(exchange)
 
-        payload = {
-          'class' => klass.to_s,
-          'opts' => {'created_at' => Time.now.to_i},
-          'params' => params
-          }.to_json
+          payload = {
+            'class' => klass.to_s,
+            'opts' => {'created_at' => Time.now.to_i},
+            'params' => params
+            }.to_json
 
-        exchange.publish(payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({key: routing_key.to_s}))
-        bunny.stop
+          exchange.publish(payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({key: routing_key.to_s}))
+        end
       rescue
         RJ.logger.warn $!.inspect
         RJ.logger.warn $!.backtrace.join("\n")
       end
+
+      true
     end
 
     def purge_queue(*routing_keys)
       raise ArgumentError unless routing_keys && routing_keys.count > 0
 
       messages_count = 0
-      routing_keys.each do |routing_key|
-        queue = bunny.queue(RJ.config.queue_name(routing_key), RJ.config[:queues][routing_key.to_s])
-        messages_count += queue.status[:message_count]
-        queue.purge
+      with_bunny do |bunny|
+        routing_keys.each do |routing_key|
+          queue = bunny.queue(RJ.config.queue_name(routing_key), RJ.config[:queues][routing_key.to_s])
+          messages_count += queue.status[:message_count]
+          queue.purge
+        end
       end
-      bunny.stop
       return messages_count
     end
 
     private
-    def self.bunny
-      @bunny = Bunny.new(host: RJ.config.host, logging: true)
-      @bunny.start unless @bunny.status == :connected
-      @bunny
+    def self.with_bunny(&block)
+      raise ArgumentError unless block
+
+      Bunny.run(host: RJ.config.host, logging: true) do |bunny|
+        block.call(bunny)
+      end
     end
   end
 end
