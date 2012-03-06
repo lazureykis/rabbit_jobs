@@ -23,7 +23,7 @@ module RabbitJobs
         with_bunny do |bunny|
           exchange = bunny.exchange(RJ.config[:exchange], RJ.config[:exchange_params])
           queue = bunny.queue(RJ.config.queue_name(routing_key), RJ.config[:queues][routing_key.to_s])
-          queue.bind(exchange)
+          queue.bind(exchange, :routing_key => routing_key.to_s)
 
           payload = {
             'class' => klass.to_s,
