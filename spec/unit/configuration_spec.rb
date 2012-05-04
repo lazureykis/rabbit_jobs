@@ -6,7 +6,7 @@ describe RabbitJobs::Configuration do
     RabbitJobs.configure do |c|
       c.disable_error_log
 
-      c.host "somehost.lan"
+      c.url "amqp://somehost.lan"
 
       c.exchange 'my_exchange', durable: true, auto_delete: false
 
@@ -16,7 +16,7 @@ describe RabbitJobs::Configuration do
 
     RabbitJobs.config.to_hash.should == {
       error_log: false,
-      host: "somehost.lan",
+      url: "amqp://somehost.lan",
       exchange: "my_exchange",
       exchange_params: {
         durable: true,
@@ -42,7 +42,7 @@ describe RabbitJobs::Configuration do
     RabbitJobs.config.load_file(File.expand_path('../../fixtures/config.yml', __FILE__))
 
     RabbitJobs.config.to_hash.should == {
-      host: "example.com",
+      url: "amqp://example.com/vhost",
       exchange: "my_exchange",
       exchange_params: {
         durable: true,
@@ -67,7 +67,7 @@ describe RabbitJobs::Configuration do
   it 'use default config' do
     RabbitJobs.config.to_hash.should == {
       error_log: true,
-      host: "localhost",
+      url: "amqp://localhost",
       exchange: "rabbit_jobs",
       exchange_params: {
         auto_delete: false,
@@ -85,8 +85,7 @@ describe RabbitJobs::Configuration do
 
   it 'returns settings on some methods' do
     RabbitJobs.config.error_log == true
-    RabbitJobs.config.host.should == 'localhost'
-    RabbitJobs.config[:host].should == 'localhost'
+    RabbitJobs.config.url.should == 'amqp://localhost'
     RabbitJobs.config.routing_keys.should == ['default']
     RabbitJobs.config.exchange.should == 'rabbit_jobs'
     RabbitJobs.config.queue_name('default').should == 'rabbit_jobs#default'

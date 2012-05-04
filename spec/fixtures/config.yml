@@ -1,5 +1,5 @@
 rabbit_jobs:
-  host: example.com
+  url: amqp://example.com/vhost
   exchange: 'my_exchange'
   exchange_params:
     durable: true

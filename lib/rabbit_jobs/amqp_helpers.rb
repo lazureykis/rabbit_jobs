@@ -15,7 +15,7 @@ module RabbitJobs
         block.call(connection, exchange)
 
       else
-        AMQP.start(host: RJ.config.host) do |connection|
+        AMQP.start(RJ.config.url) do |connection|
 
           channel = AMQP::Channel.new(connection)
 

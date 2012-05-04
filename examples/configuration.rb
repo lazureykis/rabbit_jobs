@@ -4,7 +4,7 @@ require 'rabbit_jobs'
 require 'json'
 
 RabbitJobs.configure do |c|
-  c.host        "127.0.0.1"
+  c.url        "amqp://localhost"
 
   c.exchange 'test_exchange', durable: true, auto_delete: false
 

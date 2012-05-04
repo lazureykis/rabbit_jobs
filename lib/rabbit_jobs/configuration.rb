@@ -25,7 +25,7 @@ module RabbitJobs
 
     unless @@configuration
       self.configure do |c|
-        c.host 'localhost'
+        c.url 'amqp://localhost'
         c.exchange 'rabbit_jobs', auto_delete: false, durable: true
         c.queue 'default', auto_delete: false, ack: true, durable: true
       end
@@ -61,7 +61,7 @@ module RabbitJobs
     def initialize
       @data = {
         error_log: true,
-        host: 'localhost',
+        url: 'amqp://localhost',
         exchange: 'rabbit_jobs',
         exchange_params: DEFAULT_EXCHANGE_PARAMS,
         queues: {}
@@ -81,8 +81,12 @@ module RabbitJobs
       end
     end
 
-    def mail_errors_from
-      @data[:mail_errors_form]
+    def mail_errors_from(email = nil)
+      if email
+        @data[:mail_errors_from] = email
+      else
+        @data[:mail_errors_from]
+      end
     end
 
     def error_log
@@ -93,12 +97,12 @@ module RabbitJobs
       @data[:error_log] = false
     end
 
-    def host(value = nil)
+    def url(value = nil)
       if value
         raise ArgumentError unless value.is_a?(String) && value != ""
-        @data[:host] = value.to_s
+        @data[:url] = value.to_s
       else
-        @data[:host]
+        @data[:url]
       end
     end
 
@@ -147,8 +151,10 @@ module RabbitJobs
       elsif defined?(Rails) && yaml[Rails.env.to_s]
         convert_yaml_config(yaml[Rails.env.to_s])
       else
-        @data = {host: nil, exchange: nil, queues: {}}
-        host yaml['host']
+        @data = {url: nil, exchange: nil, queues: {}}
+        %w(url exchange mail_errors_to mail_errors_from).each do |m|
+          self.send(m, yaml[m])
+        end
         exchange yaml['exchange'], symbolize_keys!(yaml['exchange_params'])
         yaml['queues'].each do |name, params|
           queue name, symbolize_keys!(params) || {}

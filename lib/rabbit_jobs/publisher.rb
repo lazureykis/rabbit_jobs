@@ -59,7 +59,7 @@ module RabbitJobs
     def self.with_bunny(&block)
       raise ArgumentError unless block
 
-      Bunny.run(host: RJ.config.host, logging: false) do |bunny|
+      Bunny.run(url: RJ.config.url, logging: false) do |bunny|
         block.call(bunny)
       end
     end
