@@ -14,10 +14,8 @@ namespace :rj do
     daemon
   end
 
-  task :setup
-
   desc "Start a Rabbit Jobs worker"
-  task :worker => [ :preload, :setup ] do
+  task :worker => :environment do
     require 'rabbit_jobs'
 
     queues = (ENV['QUEUES'] || ENV['QUEUE']).to_s.split(',')
@@ -27,14 +25,14 @@ namespace :rj do
   end
 
   desc "Start a Rabbit Jobs scheduler"
-  task :scheduler => [ :preload, :setup ] do
+  task :scheduler => :environment do
     scheduler = initialize_rj_daemon(RabbitJobs::Scheduler.new)
 
     scheduler.work
   end
 
   # Preload app files if this is Rails
-  task :preload => :setup do
+  task :environment do
     if defined?(Rails) && Rails.respond_to?(:application)
       # Rails 3
       # Rails.application.eager_load!
