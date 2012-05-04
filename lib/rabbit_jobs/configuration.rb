@@ -15,11 +15,22 @@ module RabbitJobs
   end
 
   def load_config
-    self.configure do |c|
-      c.host 'localhost'
-      c.exchange 'rabbit_jobs', auto_delete: false, durable: true
-      c.queue 'default', auto_delete: false, ack: true, durable: true
+    if defined?(Rails) && Rails.respond_to?(:root)
+      config_file = Rails.root.join('config/rabbit_jobs.yml')
+      if File.exists?(config_file)
+        @@configuration ||= Configuration.new
+        @@configuration.load_file(config_file)
+      end
     end
+
+    unless @@configuration
+      self.configure do |c|
+        c.host 'localhost'
+        c.exchange 'rabbit_jobs', auto_delete: false, durable: true
+        c.queue 'default', auto_delete: false, ack: true, durable: true
+      end
+    end
+
     @@configuration
   end
 
@@ -133,6 +144,8 @@ module RabbitJobs
     def convert_yaml_config(yaml)
       if yaml['rabbit_jobs']
         convert_yaml_config(yaml['rabbit_jobs'])
+      elsif defined?(Rails) && yaml[Rails.env.to_s]
+        convert_yaml_config(yaml[Rails.env.to_s])
       else
         @data = {host: nil, exchange: nil, queues: {}}
         host yaml['host']
