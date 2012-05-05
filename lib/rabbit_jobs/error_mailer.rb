@@ -1,9 +1,8 @@
 # -*- encoding : utf-8 -*-
-
 module RabbitJobs
   class ErrorMailer
     def self.enabled?
-      !!RabbitJobs.config.mail_errors_from && !RabbitJobs.config.mail_errors_from.empty?
+      defined?(ActionMailer) && !!RabbitJobs.config.mail_errors_from && !RabbitJobs.config.mail_errors_from.empty?
     end
 
     def self.send(job, error = $!)
