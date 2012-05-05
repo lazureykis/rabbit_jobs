@@ -8,7 +8,7 @@ module RabbitJobs
   class Scheduler
     include AmqpHelpers
 
-    attr_accessor :pidfile, :background, :schedule
+    attr_accessor :pidfile, :background, :schedule, :process_name
 
     def load_default_schedule
       if defined?(Rails)
@@ -61,10 +61,10 @@ module RabbitJobs
       args = config['args'] || config[:args] || []
       klass_name = config['class'] || config[:class]
       params = args.is_a?(Hash) ? [args] : Array(args)
-      queue = config['queue'] || config[:queue] || RabbitJobs.config.routing_keys.first
+      queue = config['queue'] || config[:queue] || RJ.config.routing_keys.first
 
       RJ.logger.info "publishing #{config} at #{Time.now}"
-      RabbitJobs.publish_to(queue, klass_name, *params)
+      RJ.publish_to(queue, klass_name, *params)
     rescue
       RJ.logger.warn "Failed to publish #{klass_name}:\n #{$!}\n params = #{params.inspect}"
     end
@@ -84,6 +84,8 @@ module RabbitJobs
     # Subscribes to channel and working on jobs
     def work(time = 0)
       startup
+
+      $0 = self.process_name || "rj_scheduler"
 
       processed_count = 0
       amqp_with_exchange do |connection, exchange|

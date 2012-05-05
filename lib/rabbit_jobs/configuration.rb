@@ -14,9 +14,9 @@ module RabbitJobs
     @@configuration ||= load_config
   end
 
-  def load_config
-    if defined?(Rails) && Rails.respond_to?(:root)
-      config_file = Rails.root.join('config/rabbit_jobs.yml')
+  def load_config(config_file = nil)
+    config_file ||= defined?(Rails) && Rails.respond_to?(:root) && Rails.root.join('config/rabbit_jobs.yml')
+    if config_file
       if File.exists?(config_file)
         @@configuration ||= Configuration.new
         @@configuration.load_file(config_file)
