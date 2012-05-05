@@ -7,8 +7,9 @@ describe RabbitJobs::ErrorMailer do
     it 'should be enabled when use setup email' do
       RabbitJobs::ErrorMailer.enabled?.should == false
       RabbitJobs.configure do |c|
-        c.mail_errors_to 'dev@exampe.com', 'app@example.com'
+        c.mail_errors_to 'dev@example.com', 'app@example.com'
       end
+      puts RJ.config.inspect
       RabbitJobs::ErrorMailer.enabled?.should == true
     end
   end

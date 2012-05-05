@@ -75,7 +75,7 @@ module RabbitJobs
     def mail_errors_to(email = nil, from_email = nil)
       if email && from_email
         @data[:mail_errors_to] = email
-        @data[:mail_errors_form] = from_email
+        @data[:mail_errors_from] = from_email
       else
         @data[:mail_errors_to]
       end
