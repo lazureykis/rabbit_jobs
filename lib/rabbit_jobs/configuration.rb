@@ -102,7 +102,7 @@ module RabbitJobs
         raise ArgumentError unless value.is_a?(String) && value != ""
         @data[:url] = value.to_s
       else
-        @data[:url]
+        @data[:url] || 'amqp://localhost'
       end
     end
 

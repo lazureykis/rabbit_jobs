@@ -4,7 +4,7 @@ module RabbitJobs
   class Worker
     include AmqpHelpers
 
-    attr_accessor :pidfile, :background
+    attr_accessor :pidfile, :background, :process_name
 
     # Workers should be initialized with an array of string queue
     # names. The order is important: a Worker will check the first
@@ -30,7 +30,9 @@ module RabbitJobs
 
     # Subscribes to channel and working on jobs
     def work(time = 0)
-      startup
+      return unless startup
+
+      $0 = self.process_name || "rj_worker (#{queues.join(',')})"
 
       processed_count = 0
       amqp_with_exchange do |connection, exchange|
@@ -42,7 +44,7 @@ module RabbitJobs
             RJ.logger.info "Stopping worker..."
 
             connection.close {
-              File.delete(self.pidfile) if self.pidfile
+              File.delete(self.pidfile) if self.pidfile && File.exists?(self.pidfile)
               EM.stop {
                 exit!
                 RJ.logger.close
@@ -94,7 +96,15 @@ module RabbitJobs
     def startup
       # prune_dead_workers
 
-      Process.daemon(true) if self.background
+      if self.background
+        child_pid = fork
+        if child_pid
+          Process.detach(child_pid)
+          return false
+        else
+          Process.daemon(true)
+        end
+      end
 
       if self.pidfile
         File.open(self.pidfile, 'w') { |f| f << Process.pid }
@@ -108,6 +118,8 @@ module RabbitJobs
 
       Signal.trap('TERM') { shutdown }
       Signal.trap('INT')  { shutdown! }
+
+      true
     end
 
     def shutdown!
