@@ -30,7 +30,7 @@ module RabbitJobs
 
     # Subscribes to channel and working on jobs
     def work(time = 0)
-      return unless startup
+      return false unless startup
 
       $0 = self.process_name || "rj_worker (#{queues.join(',')})"
 
@@ -41,13 +41,14 @@ module RabbitJobs
         check_shutdown = Proc.new {
           if @shutdown
             RJ.logger.info "Processed jobs: #{processed_count}"
-            RJ.logger.info "Stopping worker..."
+            RJ.logger.info "Stopping worker ##{Process.pid}..."
 
             connection.close {
               File.delete(self.pidfile) if self.pidfile && File.exists?(self.pidfile)
               EM.stop {
-                exit!
+                RJ.logger.info "Worker ##{Process.pid} stopped."
                 RJ.logger.close
+                exit!
               }
             }
           end
@@ -87,6 +88,8 @@ module RabbitJobs
           check_shutdown.call
         end
       end
+
+      true
     end
 
     def shutdown
@@ -99,9 +102,9 @@ module RabbitJobs
       if self.background
         child_pid = fork
         if child_pid
-          Process.detach(child_pid)
           return false
         else
+          # daemonize child process
           Process.daemon(true)
         end
       end

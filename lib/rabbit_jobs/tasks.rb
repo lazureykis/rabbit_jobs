@@ -21,7 +21,7 @@ namespace :rj do
     queues = (ENV['QUEUES'] || ENV['QUEUE']).to_s.split(',')
     worker = initialize_rj_daemon(RJ::Worker.new(*queues))
 
-    worker.work
+    exit(0) if worker.work
   end
 
   desc "Start a Rabbit Jobs scheduler"
