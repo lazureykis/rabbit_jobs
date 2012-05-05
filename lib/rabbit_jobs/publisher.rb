@@ -4,6 +4,7 @@ require 'json'
 require 'amqp'
 require 'eventmachine'
 require 'bunny'
+require 'uri'
 
 module RabbitJobs
   module Publisher
@@ -59,7 +60,8 @@ module RabbitJobs
     def self.with_bunny(&block)
       raise ArgumentError unless block
 
-      Bunny.run(url: RJ.config.url, logging: false) do |bunny|
+      uri = URI.parse(RJ.config.url)
+      Bunny.run(url: RJ.config.url, host: uri.host, logging: false) do |bunny|
         block.call(bunny)
       end
     end
