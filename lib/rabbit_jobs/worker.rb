@@ -45,9 +45,10 @@ module RabbitJobs
 
             connection.close {
               File.delete(self.pidfile) if self.pidfile && File.exists?(self.pidfile)
+              RJ.logger.info "##{Process.pid} stopped."
+              RJ.logger.close
+
               EM.stop {
-                RJ.logger.info "Worker ##{Process.pid} stopped."
-                RJ.logger.close
                 exit!
               }
             }
