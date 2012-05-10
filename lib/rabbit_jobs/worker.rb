@@ -99,6 +99,7 @@ module RabbitJobs
 
     def startup
       # prune_dead_workers
+      RabbitJobs::Util.check_pidfile(self.pidfile) if self.pidfile
 
       if self.background
         child_pid = fork

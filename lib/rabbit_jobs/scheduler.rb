@@ -122,6 +122,7 @@ module RabbitJobs
 
     def startup
       # prune_dead_workers
+      RabbitJobs::Util.check_pidfile(self.pidfile) if self.pidfile
 
       Process.daemon(true) if self.background
 

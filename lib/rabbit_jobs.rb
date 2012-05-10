@@ -2,6 +2,7 @@
 
 require 'rabbit_jobs/version'
 
+require 'rabbit_jobs/util'
 require 'rabbit_jobs/helpers'
 require 'rabbit_jobs/amqp_helpers'
 require 'rabbit_jobs/configuration'
