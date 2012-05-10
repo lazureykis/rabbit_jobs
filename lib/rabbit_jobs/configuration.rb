@@ -72,6 +72,23 @@ module RabbitJobs
       @data[name]
     end
 
+    def connection_options
+      return @data[:connection_options] if @data[:connection_options]
+
+      ports = {'amqp' => 5672, 'amqps' => 5671}
+      uri = URI.parse(self.url)
+
+      raise "Unknown scheme" unless ports.keys.include?(uri.scheme.downcase)
+
+      @data[:connection_options] = {
+        host: uri.host || 'localhost',
+        port: uri.port || ports[uri.scheme.downcase],
+        vhost: uri.path || '/',
+        user: uri.user || 'guest',
+        password: uri.password || 'guest'
+      }
+    end
+
     def mail_errors_to(email = nil)
       if email
         @data[:mail_errors_to] = email
@@ -100,6 +117,7 @@ module RabbitJobs
       if value
         raise ArgumentError unless value.is_a?(String) && value != ""
         @data[:url] = value.to_s
+        @data[:connection_options] = nil
       else
         @data[:url] || 'amqp://localhost'
       end

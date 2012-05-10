@@ -1,4 +1,5 @@
 # -*- encoding : utf-8 -*-
+require 'uri'
 
 module RabbitJobs
   module AmqpHelpers
@@ -15,7 +16,7 @@ module RabbitJobs
         block.call(connection, exchange)
 
       else
-        AMQP.start(RJ.config.url) do |connection|
+        AMQP.start(RJ.config.connection_options) do |connection|
 
           channel = AMQP::Channel.new(connection)
 

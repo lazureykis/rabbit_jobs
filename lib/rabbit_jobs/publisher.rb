@@ -60,8 +60,7 @@ module RabbitJobs
     def self.with_bunny(&block)
       raise ArgumentError unless block
 
-      uri = URI.parse(RJ.config.url)
-      Bunny.run(url: RJ.config.url, host: uri.host, logging: false) do |bunny|
+      Bunny.run(RJ.config.connection_options.merge({logging: false})) do |bunny|
         block.call(bunny)
       end
     end
