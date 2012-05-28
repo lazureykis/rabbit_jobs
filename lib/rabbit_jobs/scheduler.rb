@@ -83,7 +83,7 @@ module RabbitJobs
 
     # Subscribes to channel and working on jobs
     def work(time = 0)
-      startup
+      return false unless startup
 
       $0 = self.process_name || "rj_scheduler"
 
@@ -113,6 +113,8 @@ module RabbitJobs
           check_shutdown.call
         end
       end
+
+      true
     end
 
     def shutdown
@@ -125,13 +127,12 @@ module RabbitJobs
       RabbitJobs::Util.check_pidfile(self.pidfile) if self.pidfile
 
       if self.background
-        Process.daemon(true)
-
-        if defined?(ActiveRecord::Base)
-          ActiveRecord::Base.establish_connection
-        end
-        if defined?(MongoMapper)
-          MongoMapper.database.connection.connect_to_master
+        child_pid = fork
+        if child_pid
+          return false
+        else
+          # daemonize child process
+          Process.daemon(true)
         end
       end
 
@@ -147,6 +148,8 @@ module RabbitJobs
 
       Signal.trap('TERM') { shutdown }
       Signal.trap('INT')  { shutdown! }
+
+      true
     end
 
     def shutdown!
