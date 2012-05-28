@@ -31,9 +31,8 @@ module RabbitJobs::Job
           if defined?(MongoMapper)
             MongoMapper.database.connection.connect_to_master
           end
-          # RJ.logger.debug 'before perform'
+
           self.class.perform(*params)
-          # RJ.logger.debug 'after perform'
         rescue
           RJ.logger.warn(self.inspect)
           RJ.logger.warn([$!.inspect, $!.backtrace.to_a].join("\n"))

@@ -124,7 +124,16 @@ module RabbitJobs
       # prune_dead_workers
       RabbitJobs::Util.check_pidfile(self.pidfile) if self.pidfile
 
-      Process.daemon(true) if self.background
+      if self.background
+        Process.daemon(true)
+
+        if defined?(ActiveRecord::Base)
+          ActiveRecord::Base.establish_connection
+        end
+        if defined?(MongoMapper)
+          MongoMapper.database.connection.connect_to_master
+        end
+      end
 
       if self.pidfile
         File.open(self.pidfile, 'w') { |f| f << Process.pid }

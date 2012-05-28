@@ -108,6 +108,13 @@ module RabbitJobs
         else
           # daemonize child process
           Process.daemon(true)
+
+          if defined?(ActiveRecord::Base)
+            ActiveRecord::Base.establish_connection
+          end
+          if defined?(MongoMapper)
+            MongoMapper.database.connection.connect_to_master
+          end
         end
       end
 

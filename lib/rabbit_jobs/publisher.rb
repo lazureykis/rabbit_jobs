@@ -60,6 +60,7 @@ module RabbitJobs
     def self.with_bunny(&block)
       raise ArgumentError unless block
 
+      # raise RJ.config.connection_options.inspect
       Bunny.run(RJ.config.connection_options.merge({logging: false})) do |bunny|
         block.call(bunny)
       end

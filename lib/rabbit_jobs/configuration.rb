@@ -25,7 +25,7 @@ module RabbitJobs
 
     unless @@configuration
       self.configure do |c|
-        c.url 'amqp://localhost'
+        c.url 'amqp://localhost/'
         c.exchange 'rabbit_jobs', auto_delete: false, durable: true
         c.queue 'default', auto_delete: false, ack: true, durable: true
       end
@@ -61,7 +61,7 @@ module RabbitJobs
     def initialize
       @data = {
         error_log: true,
-        url: 'amqp://localhost',
+        url: 'amqp://localhost/',
         exchange: 'rabbit_jobs',
         exchange_params: DEFAULT_EXCHANGE_PARAMS,
         queues: {}
@@ -119,7 +119,7 @@ module RabbitJobs
         @data[:url] = value.to_s
         @data[:connection_options] = nil
       else
-        @data[:url] || 'amqp://localhost'
+        @data[:url] || 'amqp://localhost/'
       end
     end
 
