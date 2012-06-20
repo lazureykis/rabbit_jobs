@@ -25,11 +25,8 @@ module RabbitJobs::Job
       else
         $0 = "##{@child_pid} #{self.class}.perform(#{ params.map(&:inspect).join(', ') }) #{$0}"
         begin
-          if defined?(ActiveRecord::Base)
-            ActiveRecord::Base.establish_connection
-          end
-          if defined?(MongoMapper)
-            MongoMapper.database.connection.connect_to_master
+          RJ.__after_fork_callbacks.each do |callback|
+            callback.call()
           end
 
           self.class.perform(*params)

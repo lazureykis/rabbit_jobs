@@ -30,6 +30,17 @@ module RabbitJobs
   def logger
     @logger ||= Logger.new $stdout
   end
+
+  def after_fork(&block)
+    raise ArgumentError.new("No block passed to after_fork") unless block_given?
+    @@after_fork_callbacks ||= []
+
+    @@after_fork_callbacks << block
+  end
+
+  def __after_fork_callbacks
+    @@after_fork_callbacks ||= []
+  end
 end
 
 RJ = RabbitJobs
