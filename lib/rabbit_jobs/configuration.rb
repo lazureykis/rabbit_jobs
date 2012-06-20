@@ -56,6 +56,8 @@ module RabbitJobs
       immediate: false
     }
 
+    DEFAULT_QUEUES = { "default" => DEFAULT_QUEUE_PARAMS }
+
     def to_hash
       @data.dup
     end
@@ -66,7 +68,7 @@ module RabbitJobs
         url: 'amqp://localhost/',
         exchange: 'rabbit_jobs',
         exchange_params: DEFAULT_EXCHANGE_PARAMS,
-        queues: {}
+        queues: DEFAULT_QUEUES
       }
     end
 
