@@ -8,7 +8,7 @@ namespace :rj do
   def initialize_rj_daemon(daemon)
     daemon.pidfile = ENV['PIDFILE']
     daemon.background = %w(yes true).include? ENV['BACKGROUND']
-    RJ.logger = ::Logger.new(ENV['LOGFILE']) if ENV['LOGFILE']
+    RJ.logger = ::Logger.new(ENV['LOGFILE'] || $stdout)
     RJ.logger.level = ENV['VERBOSE'] ? Logger::INFO : Logger::WARN
 
     daemon
