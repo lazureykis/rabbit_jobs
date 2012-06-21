@@ -151,6 +151,13 @@ module RabbitJobs
       @data[:queues].keys
     end
 
+    def init_default_queue
+      queue('default', DEFAULT_QUEUE_PARAMS) if @data[:queues].empty?
+      key = @data[:queues].keys.first
+    end
+
+    alias_method :default_queue, :init_default_queue
+
     def queue_name(routing_key)
       [@data[:exchange], routing_key].join('#')
     end

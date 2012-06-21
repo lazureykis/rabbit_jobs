@@ -12,9 +12,7 @@ module RabbitJobs
     extend AmqpHelpers
 
     def publish(klass, *params)
-      RJ.config.queue('default', RJ::Configuration::DEFAULT_QUEUE_PARAMS) if RJ.config.routing_keys.empty?
-      key = RJ.config.routing_keys.first
-      publish_to(key, klass, *params)
+      publish_to(RJ.config.default_queue, klass, *params)
     end
 
     def publish_to(routing_key, klass, *params)

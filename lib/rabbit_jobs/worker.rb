@@ -18,6 +18,7 @@ module RabbitJobs
     # in alphabetical order. Queues can be dynamically added or
     # removed without needing to restart workers using this method.
     def initialize(*queues)
+      RJ.config.init_default_queue
       @queues = queues.map { |queue| queue.to_s.strip }.flatten.uniq
       if @queues == ['*'] || @queues.empty?
         @queues = RabbitJobs.config.routing_keys
