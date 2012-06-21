@@ -29,7 +29,6 @@ module RabbitJobs
       self.configure do |c|
         c.url 'amqp://localhost/'
         c.exchange 'rabbit_jobs', auto_delete: false, durable: true
-        c.queue 'default', auto_delete: false, ack: true, durable: true
       end
     end
 
@@ -56,8 +55,6 @@ module RabbitJobs
       immediate: false
     }
 
-    DEFAULT_QUEUES = { "default" => DEFAULT_QUEUE_PARAMS }
-
     def to_hash
       @data.dup
     end
@@ -68,7 +65,7 @@ module RabbitJobs
         url: 'amqp://localhost/',
         exchange: 'rabbit_jobs',
         exchange_params: DEFAULT_EXCHANGE_PARAMS,
-        queues: DEFAULT_QUEUES
+        queues: {}
       }
     end
 
