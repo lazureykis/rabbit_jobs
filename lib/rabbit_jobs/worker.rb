@@ -4,7 +4,7 @@ module RabbitJobs
   class Worker
     include AmqpHelpers
 
-    attr_accessor :pidfile, :background, :process_name
+    attr_accessor :pidfile, :background, :process_name, :worker_pid
 
     # Workers should be initialized with an array of string queue
     # names. The order is important: a Worker will check the first
@@ -36,58 +36,71 @@ module RabbitJobs
       $0 = self.process_name || "rj_worker (#{queues.join(',')})"
 
       processed_count = 0
-      amqp_with_exchange do |connection, exchange|
-        exchange.channel.prefetch(1)
+      RJ.logger.info("Connecting to amqp...")
 
-        check_shutdown = Proc.new {
-          if @shutdown
-            RJ.logger.info "Processed jobs: #{processed_count}"
-            RJ.logger.info "Stopping worker ##{Process.pid}..."
+      begin
+        amqp_with_exchange do |connection, exchange|
+          exchange.channel.prefetch(1)
 
-            connection.close {
-              File.delete(self.pidfile) if self.pidfile && File.exists?(self.pidfile)
-              RJ.logger.info "##{Process.pid} stopped."
-              RJ.logger.close
+          check_shutdown = Proc.new {
+            if @shutdown
+              RJ.logger.info "Processed jobs: #{processed_count}"
+              RJ.logger.info "Stopping worker ##{Process.pid}..."
 
-              EM.stop {
-                exit!
+              connection.close {
+                File.delete(self.pidfile) if self.pidfile && File.exists?(self.pidfile)
+                RJ.logger.info "##{Process.pid} stopped."
+                RJ.logger.close
+
+                EM.stop {
+                  exit!
+                }
               }
-            }
-          end
-        }
-
-        queues.each do |routing_key|
-          queue = make_queue(exchange, routing_key)
-
-          RJ.logger.info "Worker ##{Process.pid} <= #{exchange.name}##{routing_key}"
-
-          explicit_ack = !!RJ.config[:queues][routing_key][:ack]
-
-          queue.subscribe(ack: explicit_ack) do |metadata, payload|
-            @job = RJ::Job.parse(payload)
-
-            unless @job.expired?
-              @job.run_perform
-              processed_count += 1
-            else
-              RJ.logger.info "Job expired: #{@job.inspect}"
             end
+          }
 
-            metadata.ack if explicit_ack
+          queues.each do |routing_key|
+            queue = make_queue(exchange, routing_key)
 
+            RJ.logger.info "Worker ##{Process.pid} <= #{exchange.name}##{routing_key}"
+
+            explicit_ack = !!RJ.config[:queues][routing_key][:ack]
+
+            queue.subscribe(ack: explicit_ack) do |metadata, payload|
+              @job = RJ::Job.parse(payload)
+
+              unless @job.expired?
+                @job.run_perform
+                processed_count += 1
+              else
+                RJ.logger.info "Job expired: #{@job.inspect}"
+              end
+
+              metadata.ack if explicit_ack
+
+              check_shutdown.call
+            end
+          end
+
+          if time > 0
+            # for debugging
+            EM.add_timer(time) do
+              self.shutdown
+            end
+          end
+
+          EM.add_periodic_timer(1) do
             check_shutdown.call
           end
         end
-
-        if time > 0
-          # for debugging
-          EM.add_timer(time) do
-            self.shutdown
+      rescue
+        error = $!
+        if RJ.logger
+          begin
+            RJ.logger.error [error.message, error.backtrace].flatten.join("\n")
+          ensure
+            abort(error.message)
           end
-        end
-
-        EM.add_periodic_timer(1) do
-          check_shutdown.call
         end
       end
 
@@ -103,21 +116,18 @@ module RabbitJobs
       RabbitJobs::Util.check_pidfile(self.pidfile) if self.pidfile
 
       if self.background
-        child_pid = fork
-        if child_pid
-          return false
-        else
-          # daemonize child process
-          Process.daemon(true)
-        end
+        return false if self.worker_pid = fork
+
+        # daemonize child process
+        Process.daemon(true)
       end
+
+      self.worker_pid ||= Process.pid
 
       if self.pidfile
         File.open(self.pidfile, 'w') { |f| f << Process.pid }
       end
 
-      # Fix buffering so we can `rake rj:work > resque.log` and
-      # get output from the child in there.
       $stdout.sync = true
 
       @shutdown = false
@@ -135,13 +145,8 @@ module RabbitJobs
 
     def kill_child
       if @job && @job.child_pid
-        # RJ.logger.info "Killing child at #{@child}"
-        if Kernel.system("ps -o pid,state -p #{@job.child_pid}")
-          Process.kill("KILL", @job.child_pid) rescue nil
-        else
-          # RJ.logger.info "Child #{@child} not found, restarting."
-          # shutdown
-        end
+        RJ.logger.info "Killing child #{@job.child_pid} at #{Time.now}"
+        Process.kill("KILL", @job.child_pid) rescue nil
       end
     end
   end

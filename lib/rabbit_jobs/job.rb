@@ -34,7 +34,7 @@ module RabbitJobs::Job
           RJ.logger.warn(self.inspect)
           RJ.logger.warn([$!.inspect, $!.backtrace.to_a].join("\n"))
           run_on_error_hooks($!)
-          RabbitJobs::ErrorMailer.send(self, $!)
+          RabbitJobs::ErrorMailer.report_error(self, $!)
         end
         exit!
       end
@@ -112,8 +112,6 @@ module RabbitJobs::Job
       RJ.logger.error $!.inspect
       RJ.logger.error $!.backtrace
       RJ.logger.error "message: #{payload.inspect}"
-      # Mailer.send(klass_name, params, $!)
-      # raise $!
     end
   end
 end

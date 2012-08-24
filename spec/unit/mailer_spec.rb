@@ -21,7 +21,7 @@ describe RabbitJobs::ErrorMailer do
       mock(email).deliver { }
       mock(RabbitJobs::ErrorMailer).enabled? { true }
 
-      RabbitJobs::ErrorMailer.send(TestJob.new, RuntimeError.new('error text'))
+      RabbitJobs::ErrorMailer.report_error(TestJob.new, RuntimeError.new('error text'))
     end
   end
 end

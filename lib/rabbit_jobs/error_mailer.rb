@@ -5,15 +5,13 @@ module RabbitJobs
       defined?(ActionMailer) && !!RabbitJobs.config.mail_errors_from && !RabbitJobs.config.mail_errors_from.empty?
     end
 
-    def self.send(job, error = $!)
+    def self.report_error(job, error = $!)
       return unless enabled?
-
-      raise "You must require action_mailer or turn of error reporting in config." unless defined?(ActionMailer)
 
       params ||= []
 
       params_str = job.params == [] ? '' : job.params.map { |p| p.inspect }.join(', ')
-      subject = "RJ:Worker: #{error.class} on #{job.class}.perform(#{params_str}) "
+      subject = "RJ:Worker: #{error.class} on #{job.class}"
       text    = "\n#{job.class}.perform(#{params_str})\n"
       text   += "\n#{error.inspect}\n"
       text   += "\nBacktrace:\n#{error.backtrace.join("\n")}" if error.backtrace
@@ -27,7 +25,7 @@ module RabbitJobs
       begin
         letter.deliver
       rescue
-        RJ.logger.error $!.inspect
+        RJ.logger.error [$!.message, $!.backtrace].flatten.join("\n")
       end
     end
   end
