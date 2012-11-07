@@ -2,7 +2,11 @@
 module RabbitJobs
   class ErrorMailer
     def self.enabled?
-      defined?(ActionMailer) && !!RabbitJobs.config.mail_errors_from && !RabbitJobs.config.mail_errors_from.empty?
+      !!(
+        defined?(ActionMailer) && \
+        RabbitJobs.config.mail_errors_from && !RabbitJobs.config.mail_errors_from.empty? && \
+        RabbitJobs.config.mail_errors_to && !RabbitJobs.config.mail_errors_to.empty?
+      )
     end
 
     def self.report_error(job, error = $!)

@@ -2,8 +2,6 @@
 
 module RabbitJobs
   class Worker
-    include AmqpHelpers
-
     attr_accessor :pidfile, :background, :process_name, :worker_pid
 
     # Workers should be initialized with an array of string queue
@@ -39,7 +37,7 @@ module RabbitJobs
       RJ.logger.info("Connecting to amqp...")
 
       begin
-        amqp_with_exchange do |connection, exchange|
+        AmqpHelpers.amqp_with_exchange do |connection, exchange, stop_em|
           exchange.channel.prefetch(1)
 
           check_shutdown = Proc.new {
@@ -47,7 +45,7 @@ module RabbitJobs
               RJ.logger.info "Processed jobs: #{processed_count}"
               RJ.logger.info "Stopping worker ##{Process.pid}..."
 
-              connection.close {
+              connection.disconnect {
                 File.delete(self.pidfile) if self.pidfile && File.exists?(self.pidfile)
                 RJ.logger.info "##{Process.pid} stopped."
                 RJ.logger.close
@@ -60,7 +58,8 @@ module RabbitJobs
           }
 
           queues.each do |routing_key|
-            queue = make_queue(exchange, routing_key)
+            queue = exchange.channel.queue(RJ.config.queue_name(routing_key), RJ.config[:queues][routing_key])
+            queue.bind(exchange, :routing_key => routing_key)
 
             RJ.logger.info "Worker ##{Process.pid} <= #{exchange.name}##{routing_key}"
 

@@ -86,7 +86,7 @@ describe RabbitJobs::Configuration do
   it 'returns settings on some methods' do
     RabbitJobs.config.error_log == true
     RabbitJobs.config.url.should == 'amqp://localhost'
-    RabbitJobs.config.routing_keys.should == ['default']
+    RabbitJobs.config.routing_keys.should == []
     RabbitJobs.config.exchange.should == 'rabbit_jobs'
     RabbitJobs.config.queue_name('default').should == 'rabbit_jobs#default'
   end

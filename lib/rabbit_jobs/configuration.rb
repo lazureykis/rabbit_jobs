@@ -1,13 +1,14 @@
 # -*- encoding : utf-8 -*-
 require 'yaml'
+require 'uri'
 
 module RabbitJobs
 
   extend self
 
-  def configure(&block)
+  def configure
     @@configuration ||= Configuration.new
-    block.call(@@configuration)
+    yield @@configuration if block_given?
   end
 
   def config
@@ -27,7 +28,7 @@ module RabbitJobs
 
     unless @@configuration
       self.configure do |c|
-        c.url 'amqp://localhost/'
+        c.url 'amqp://localhost'
         c.exchange 'rabbit_jobs', auto_delete: false, durable: true
       end
     end
@@ -51,7 +52,7 @@ module RabbitJobs
 
     DEFAULT_MESSAGE_PARAMS = {
       persistent: true,
-      nowait: false,
+      mandatory: true,
       immediate: false
     }
 
@@ -62,7 +63,7 @@ module RabbitJobs
     def initialize
       @data = {
         error_log: true,
-        url: 'amqp://localhost/',
+        url: 'amqp://localhost',
         exchange: 'rabbit_jobs',
         exchange_params: DEFAULT_EXCHANGE_PARAMS,
         queues: {}
@@ -76,18 +77,10 @@ module RabbitJobs
     def connection_options
       return @data[:connection_options] if @data[:connection_options]
 
-      ports = {'amqp' => 5672, 'amqps' => 5671}
-      uri = URI.parse(self.url)
-
-      raise "Unknown scheme" unless ports.keys.include?(uri.scheme.downcase)
-
-      @data[:connection_options] = {
-        host: uri.host || 'localhost',
-        port: uri.port || ports[uri.scheme.downcase],
-        vhost: uri.path || '/',
-        user: uri.user || 'guest',
-        password: uri.password || 'guest'
-      }
+      @data[:connection_options] = AMQP::Client.parse_connection_uri(url)
+      @data[:vhost] ||= "/"
+      @data[:vhost] = "/" if @data[:vhost].empty?
+      @data[:connection_options]
     end
 
     def mail_errors_to(email = nil)
@@ -118,9 +111,9 @@ module RabbitJobs
       if value
         raise ArgumentError unless value.is_a?(String) && value != ""
         @data[:url] = value.to_s
-        @data[:connection_options] = nil
+        @data.delete :connection_options
       else
-        @data[:url] || 'amqp://localhost/'
+        @data[:url] || 'amqp://localhost'
       end
     end
 
@@ -153,10 +146,11 @@ module RabbitJobs
 
     def init_default_queue
       queue('default', DEFAULT_QUEUE_PARAMS) if @data[:queues].empty?
-      key = @data[:queues].keys.first
     end
 
-    alias_method :default_queue, :init_default_queue
+    def default_queue
+      key = @data[:queues].keys.first
+    end
 
     def queue_name(routing_key)
       [@data[:exchange], routing_key].join('#')

@@ -47,11 +47,10 @@ describe RabbitJobs::Worker do
     end
 
     it '#kill_child' do
-      job = TestJob.new()
+      job = TestJob.new
       job.instance_variable_set '@child_pid', 123123
       @worker.instance_variable_set('@job', job)
 
-      mock(Kernel).system("ps -o pid,state -p #{123123}") { true }
       mock(Process).kill("KILL", 123123)
 
       @worker.kill_child

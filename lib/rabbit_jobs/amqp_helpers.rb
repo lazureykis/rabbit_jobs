@@ -1,52 +1,53 @@
 # -*- encoding : utf-8 -*-
+require 'amqp'
 require 'uri'
 
 module RabbitJobs
   module AmqpHelpers
 
-    # Calls given block with initialized amqp
-    def amqp_with_exchange(&block)
-      raise ArgumentError unless block
+    class << self
+      # Calls given block with amqp connection.
+      # Assumes that amqp connection already initialized when reactor is running.
+      def with_amqp
+        raise ArgumentError unless block_given?
 
-      connection = AMQP.connection
-      if connection && connection.open?
-        channel = AMQP::Channel.new(connection)
-        exchange = channel.direct(RJ.config[:exchange], RJ.config[:exchange_params])
-        # go work
-        block.call(connection, exchange)
+        if EM.reactor_running?
+          raise NotImplementedError("TODO")
+          connected = AMQP.connection && AMQP.connection.open?
+          connection = connected ? AMQP.connection : AMQP.connect(RJ.config.url)
+          yield connection, false
+        else
+          EM.run {
+            # connection = AMQP.connect(host: 'localhost', port: 5672, user: 'guest', pass: 'guest')
+            connection = AMQP.connect(RJ.config.url)
 
-      else
-        AMQP.start(RJ.config.connection_options) do |connection|
-
-          channel = AMQP::Channel.new(connection)
-
-          channel.on_error do |ch, channel_close|
-            puts "Channel-level error: #{channel_close.reply_text}, shutting down..."
-            connection.close { EM.stop }
-          end
-
-          exchange = channel.direct(RJ.config[:exchange], RJ.config[:exchange_params])
-          # go work
-          block.call(connection, exchange)
+            yield connection, true
+          }
         end
       end
-    end
 
-    def amqp_with_queue(routing_key, &block)
-      raise ArgumentError unless routing_key && block
+      # Calls given block with initialized amqp
+      def amqp_with_exchange
+        raise ArgumentError unless block_given?
 
-      amqp_with_exchange do |connection, exchange|
-        queue = make_queue(exchange, routing_key.to_s)
-
-        # go work
-        block.call(connection, queue)
+        with_amqp do |connection, stop_em|
+          channel = AMQP::Channel.new(connection)
+          exchange = channel.direct(RJ.config[:exchange], RJ.config[:exchange_params])
+          yield connection, exchange, stop_em
+        end
       end
-    end
 
-    def make_queue(exchange, routing_key)
-      queue = exchange.channel.queue(RJ.config.queue_name(routing_key), RJ.config[:queues][routing_key])
-      queue.bind(exchange, :routing_key => routing_key)
-      queue
+      def amqp_with_queue(routing_key)
+        raise ArgumentError unless routing_key && block_given?
+
+        amqp_with_exchange do |connection, exchange, stop_em|
+          channel = AMQP::Channel.new(connection)
+          exchange = channel.direct(RJ.config[:exchange], RJ.config[:exchange_params])
+          queue = channel.queue(RJ.config.queue_name(routing_key), RJ.config[:queues][routing_key])
+          queue.bind(exchange, :routing_key => routing_key)
+          yield connection, queue, stop_em
+        end
+      end
     end
   end
 end

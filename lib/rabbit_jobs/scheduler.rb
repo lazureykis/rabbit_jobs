@@ -6,7 +6,6 @@ require 'yaml'
 
 module RabbitJobs
   class Scheduler
-    include AmqpHelpers
 
     attr_accessor :pidfile, :background, :schedule, :process_name
 
@@ -88,7 +87,16 @@ module RabbitJobs
       $0 = self.process_name || "rj_scheduler"
 
       processed_count = 0
-      amqp_with_exchange do |connection, exchange|
+      AmqpHelpers.with_amqp do |connection, stop_em|
+        channel = AMQP::Channel.new(connection)
+
+        channel.on_error do |ch, channel_close|
+          puts "Channel-level error: #{channel_close.reply_text}, shutting down..."
+          connection.disconnect { EM.stop }
+        end
+
+        exchange = channel.direct(RJ.config[:exchange], RJ.config[:exchange_params])
+
         load_schedule!
 
         check_shutdown = Proc.new {
