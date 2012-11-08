@@ -6,7 +6,7 @@ require 'eventmachine'
 describe RabbitJobs::Worker do
   it 'should listen for messages' do
     RabbitJobs.configure do |c|
-      c.exchange 'test_durable', auto_delete: false, durable: true
+      c.prefix 'test_durable'
       c.queue 'rspec_durable_queue', auto_delete: false, durable: true, ack: true
     end
 
@@ -23,7 +23,7 @@ describe RabbitJobs::Worker do
 
   it 'should allow to publish jobs from worker' do
     RabbitJobs.configure do |c|
-      c.exchange 'test_durable', auto_delete: false, durable: true
+      c.prefix 'test_durable'
       c.queue 'rspec_durable_queue', auto_delete: false, durable: true, ack: true
     end
 

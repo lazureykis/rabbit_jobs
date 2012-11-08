@@ -1,9 +1,6 @@
 rabbit_jobs:
   url: amqp://example.com/vhost
-  exchange: 'my_exchange'
-  exchange_params:
-    durable: true
-    auto_delete: false
+  prefix: 'rabbit_jobs'
   queues:
     durable_queue:
       durable: true

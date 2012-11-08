@@ -29,7 +29,7 @@ module RabbitJobs
     unless @@configuration
       self.configure do |c|
         c.url 'amqp://localhost'
-        c.exchange 'rabbit_jobs', auto_delete: false, durable: true
+        c.prefix 'rabbit_jobs'
       end
     end
 
@@ -43,11 +43,6 @@ module RabbitJobs
       auto_delete: false,
       durable: true,
       ack: true
-    }
-
-    DEFAULT_EXCHANGE_PARAMS = {
-      auto_delete: false,
-      durable: true
     }
 
     DEFAULT_MESSAGE_PARAMS = {
@@ -64,8 +59,7 @@ module RabbitJobs
       @data = {
         error_log: true,
         url: 'amqp://localhost',
-        exchange: 'rabbit_jobs',
-        exchange_params: DEFAULT_EXCHANGE_PARAMS,
+        prefix: 'rabbit_jobs',
         queues: {}
       }
     end
@@ -117,13 +111,12 @@ module RabbitJobs
       end
     end
 
-    def exchange(value = nil, params = {})
+    def prefix(value = nil)
       if value
         raise ArgumentError unless value.is_a?(String) && value != ""
-        @data[:exchange] = value.downcase
-        @data[:exchange_params] = DEFAULT_EXCHANGE_PARAMS.merge(params)
+        @data[:prefix] = value.downcase
       else
-        @data[:exchange]
+        @data[:prefix]
       end
     end
 
@@ -149,11 +142,12 @@ module RabbitJobs
     end
 
     def default_queue
+      queue('default', DEFAULT_QUEUE_PARAMS) if @data[:queues].empty?
       key = @data[:queues].keys.first
     end
 
     def queue_name(routing_key)
-      [@data[:exchange], routing_key].join('#')
+      [@data[:prefix], routing_key].join('#')
     end
 
     def load_file(filename)
@@ -170,11 +164,10 @@ module RabbitJobs
       elsif defined?(Rails) && yaml[Rails.env.to_s]
         convert_yaml_config(yaml[Rails.env.to_s])
       else
-        @data = {url: nil, exchange: nil, queues: {}}
-        %w(url exchange mail_errors_to mail_errors_from).each do |m|
+        @data = {url: nil, prefix: nil, queues: {}}
+        %w(url prefix mail_errors_to mail_errors_from).each do |m|
           self.send(m, yaml[m])
         end
-        exchange yaml['exchange'], symbolize_keys!(yaml['exchange_params'])
         yaml['queues'].each do |name, params|
           queue name, symbolize_keys!(params) || {}
         end

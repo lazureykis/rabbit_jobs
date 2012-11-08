@@ -87,15 +87,13 @@ module RabbitJobs
       $0 = self.process_name || "rj_scheduler"
 
       processed_count = 0
-      AmqpHelpers.with_amqp do |connection, stop_em|
+      AmqpHelper.with_amqp do |connection, stop_em|
         channel = AMQP::Channel.new(connection)
 
         channel.on_error do |ch, channel_close|
           puts "Channel-level error: #{channel_close.reply_text}, shutting down..."
           connection.disconnect { EM.stop }
         end
-
-        exchange = channel.direct(RJ.config[:exchange], RJ.config[:exchange_params])
 
         load_schedule!
 
@@ -162,19 +160,6 @@ module RabbitJobs
 
     def shutdown!
       shutdown
-      kill_child
-    end
-
-    def kill_child
-      if @job && @job.child_pid
-        # RJ.logger.warn "Killing child at #{@child}"
-        if Kernel.system("ps -o pid,state -p #{@job.child_pid}")
-          Process.kill("KILL", @job.child_pid) rescue nil
-        else
-          # RJ.logger.warn "Child #{@child} not found, restarting."
-          # shutdown
-        end
-      end
     end
   end
 end

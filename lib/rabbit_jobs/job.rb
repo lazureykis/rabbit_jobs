@@ -14,29 +14,16 @@ module RabbitJobs::Job
       self.opts = {}
     end
 
-    attr_accessor :params, :opts, :child_pid
+    attr_accessor :params, :opts
 
     def run_perform
-      if @child_pid = fork
-        srand # Reseeding
-        RJ.logger.info "Forked #{@child_pid} at #{Time.now} to process #{self.class}.perform(#{ params.map(&:inspect).join(', ') })"
-        Process.wait(@child_pid)
-        yield if block_given?
-      else
-        $0 = "##{@child_pid} #{self.class}.perform(#{ params.map(&:inspect).join(', ') }) #{$0}"
-        begin
-          RJ.__after_fork_callbacks.each do |callback|
-            callback.call()
-          end
-
-          self.class.perform(*params)
-        rescue
-          RJ.logger.warn(self.inspect)
-          RJ.logger.warn([$!.inspect, $!.backtrace.to_a].join("\n"))
-          run_on_error_hooks($!)
-          RabbitJobs::ErrorMailer.report_error(self, $!)
-        end
-        exit!
+      begin
+        self.class.perform(*params)
+      rescue
+        RJ.logger.warn(self.inspect)
+        RJ.logger.warn([$!.inspect, $!.backtrace.to_a].join("\n"))
+        run_on_error_hooks($!)
+        RabbitJobs::ErrorMailer.report_error(self, $!)
       end
     end
 
@@ -104,14 +91,18 @@ module RabbitJobs::Job
     begin
       encoded = JSON.parse(payload)
       job_klass = constantize(encoded['class'])
-      job = encoded['params'].count > 0 ? job_klass.new(*encoded['params']) : job_klass.new
+      job = job_klass.new(*encoded['params'])
       job.opts = encoded['opts']
       job
+    rescue NameError
+      RJ.logger.error "Cannot find job class '#{encoded['class']}'"
+      :not_found
     rescue
       RJ.logger.error "JOB INIT ERROR at #{Time.now.to_s}:"
       RJ.logger.error $!.inspect
       RJ.logger.error $!.backtrace
       RJ.logger.error "message: #{payload.inspect}"
+      nil
     end
   end
 end

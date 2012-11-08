@@ -8,7 +8,6 @@ describe RabbitJobs::Publisher do
   before(:each) do
     RabbitJobs.configure do |c|
       c.url 'amqp://localhost'
-      c.exchange 'test'
       c.queue 'rspec_queue'
       c.queue 'rspec_queue2'
       c.queue 'rspec_queue3'

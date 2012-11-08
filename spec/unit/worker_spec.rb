@@ -38,22 +38,5 @@ describe RabbitJobs::Worker do
       @worker.shutdown
       @worker.instance_variable_get('@shutdown').should == true
     end
-
-    it '#shutdown! should kill child process' do
-      mock(@worker.kill_child)
-      mock(@worker.shutdown)
-
-      @worker.shutdown!
-    end
-
-    it '#kill_child' do
-      job = TestJob.new
-      job.instance_variable_set '@child_pid', 123123
-      @worker.instance_variable_set('@job', job)
-
-      mock(Process).kill("KILL", 123123)
-
-      @worker.kill_child
-    end
   end
 end

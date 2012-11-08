@@ -37,15 +37,16 @@ module RabbitJobs
       RJ.logger.info("Connecting to amqp...")
 
       begin
-        AmqpHelpers.amqp_with_exchange do |connection, exchange, stop_em|
-          exchange.channel.prefetch(1)
+        AmqpHelper.with_amqp do |stop_em|
+          AmqpHelper.prepare_channel
+          AMQP.channel.prefetch(1)
 
           check_shutdown = Proc.new {
             if @shutdown
               RJ.logger.info "Processed jobs: #{processed_count}"
               RJ.logger.info "Stopping worker ##{Process.pid}..."
 
-              connection.disconnect {
+              AMQP.connection.disconnect {
                 File.delete(self.pidfile) if self.pidfile && File.exists?(self.pidfile)
                 RJ.logger.info "##{Process.pid} stopped."
                 RJ.logger.close
@@ -58,24 +59,27 @@ module RabbitJobs
           }
 
           queues.each do |routing_key|
-            queue = exchange.channel.queue(RJ.config.queue_name(routing_key), RJ.config[:queues][routing_key])
-            queue.bind(exchange, :routing_key => routing_key)
+            queue = AMQP.channel.queue(RJ.config.queue_name(routing_key), RJ.config[:queues][routing_key])
 
-            RJ.logger.info "Worker ##{Process.pid} <= #{exchange.name}##{routing_key}"
+            RJ.logger.info "Worker ##{Process.pid} <= #{RJ.config.queue_name(routing_key)}"
 
             explicit_ack = !!RJ.config[:queues][routing_key][:ack]
 
             queue.subscribe(ack: explicit_ack) do |metadata, payload|
               @job = RJ::Job.parse(payload)
 
-              unless @job.expired?
-                @job.run_perform
-                processed_count += 1
+              if @job == :not_found
+                metadata.ack if explicit_ack
               else
-                RJ.logger.info "Job expired: #{@job.inspect}"
-              end
+                if @job.expired?
+                  RJ.logger.info "Job expired: #{@job.inspect}"
+                else
+                  @job.run_perform
+                  processed_count += 1
+                end
 
-              metadata.ack if explicit_ack
+                metadata.ack if explicit_ack
+              end
 
               check_shutdown.call
             end
@@ -139,14 +143,6 @@ module RabbitJobs
 
     def shutdown!
       shutdown
-      kill_child
-    end
-
-    def kill_child
-      if @job && @job.child_pid
-        RJ.logger.info "Killing child #{@job.child_pid} at #{Time.now}"
-        Process.kill("KILL", @job.child_pid) rescue nil
-      end
     end
   end
 end

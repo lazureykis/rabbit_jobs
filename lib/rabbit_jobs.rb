@@ -4,7 +4,7 @@ require 'rabbit_jobs/version'
 
 require 'rabbit_jobs/util'
 require 'rabbit_jobs/helpers'
-require 'rabbit_jobs/amqp_helpers'
+require 'rabbit_jobs/amqp_helper'
 require 'rabbit_jobs/configuration'
 require 'rabbit_jobs/error_mailer'
 
@@ -29,17 +29,6 @@ module RabbitJobs
   attr_writer :logger
   def logger
     @logger ||= Logger.new $stdout
-  end
-
-  def after_fork(&block)
-    raise ArgumentError.new("No block passed to after_fork") unless block_given?
-    @@after_fork_callbacks ||= []
-
-    @@after_fork_callbacks << block
-  end
-
-  def __after_fork_callbacks
-    @@after_fork_callbacks ||= []
   end
 end
 
