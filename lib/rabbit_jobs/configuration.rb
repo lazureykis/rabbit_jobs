@@ -68,14 +68,6 @@ module RabbitJobs
       @data[name]
     end
 
-    def connection_options
-      return @data[:connection_options] if @data[:connection_options]
-
-      @data[:connection_options] = AMQP::Client.parse_connection_uri(url)
-      @data[:vhost] = "/" + @data[:vhost].to_s unless @data[:vhost].to_s.start_with?("/")
-      @data[:connection_options]
-    end
-
     def mail_errors_to(email = nil)
       if email
         @data[:mail_errors_to] = email
