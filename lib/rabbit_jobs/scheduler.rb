@@ -95,7 +95,7 @@ module RabbitJobs
 
         check_shutdown = Proc.new {
           if @shutdown
-            AMQP::connection.disconnect {
+            AMQP.connection.disconnect {
               File.delete(self.pidfile) if self.pidfile
               EM.stop { exit! }
             }

@@ -14,7 +14,7 @@ module RabbitJobs
           yield false
         else
           AMQP.start(RJ.config.url) {
-            AmqpHelper.init_auto_recovery
+            init_auto_recovery
             yield true
           }
         end
