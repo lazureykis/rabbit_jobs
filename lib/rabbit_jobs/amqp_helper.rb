@@ -14,6 +14,7 @@ module RabbitJobs
           yield false
         else
           AMQP.start(RJ.config.url) {
+            AmqpHelper.init_auto_recovery
             yield true
           }
         end
@@ -29,6 +30,19 @@ module RabbitJobs
 
       private
 
+      def init_auto_recovery
+        AMQP.connection.on_recovery do |conn, opts|
+          url = url_from_opts opts
+          RJ.logger.warn "[network failure] Connection to #{url} established."
+        end
+
+        AMQP.connection.on_tcp_connection_loss do |conn, opts|
+          url = url_from_opts opts
+          RJ.logger.warn "[network failure] Trying to reconnect to #{url}..."
+          conn.reconnect(false, 2)
+        end
+      end
+
       def url_from_opts(opts = {})
         s = ""
         s << opts[:scheme]
@@ -41,16 +55,6 @@ module RabbitJobs
 
       def create_channel
         AMQP.channel = AMQP::Channel.new(AMQP.connection, auto_recovery: true)
-
-        AMQP.connection.on_recovery do |conn, opts|
-          url = url_from_opts opts
-          RJ.logger.warn "[network failure] Connection to #{url} established."
-        end
-        AMQP.connection.on_tcp_connection_loss do |conn, opts|
-          url = url_from_opts opts
-          RJ.logger.warn "[network failure] Trying to reconnect to #{url}..."
-          conn.reconnect(false, 2)
-        end
       end
     end
   end

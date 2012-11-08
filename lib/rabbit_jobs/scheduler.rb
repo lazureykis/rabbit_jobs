@@ -66,6 +66,7 @@ module RabbitJobs
       RJ.publish_to(queue, klass_name, *params)
     rescue
       RJ.logger.warn "Failed to publish #{klass_name}:\n #{$!}\n params = #{params.inspect}"
+      RJ.logger.warn $!.inspect
     end
 
     def rufus_scheduler
@@ -87,19 +88,14 @@ module RabbitJobs
       $0 = self.process_name || "rj_scheduler"
 
       processed_count = 0
-      AmqpHelper.with_amqp do |connection, stop_em|
-        channel = AMQP::Channel.new(connection)
-
-        channel.on_error do |ch, channel_close|
-          puts "Channel-level error: #{channel_close.reply_text}, shutting down..."
-          connection.disconnect { EM.stop }
-        end
+      AmqpHelper.with_amqp do |stop_em|
+        AmqpHelper.prepare_channel
 
         load_schedule!
 
         check_shutdown = Proc.new {
           if @shutdown
-            connection.close {
+            AMQP::connection.disconnect {
               File.delete(self.pidfile) if self.pidfile
               EM.stop { exit! }
             }
