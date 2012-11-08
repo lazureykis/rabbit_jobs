@@ -22,7 +22,8 @@ module RabbitJobs::Job
         self.class.perform(*params)
       rescue
         RJ.logger.warn(self.inspect)
-        RJ.logger.warn([$!.inspect, $!.backtrace.to_a].join("\n"))
+        RJ.logger.warn $!.message
+        RJ.logger.warn RJ::Util.cleanup_backtrace($!.backtrace).join("\n")
         run_on_error_hooks($!)
         RabbitJobs::ErrorMailer.report_error(self, $!)
       end
@@ -100,8 +101,8 @@ module RabbitJobs::Job
       :not_found
     rescue
       RJ.logger.error "JOB INIT ERROR at #{Time.now.to_s}:"
-      RJ.logger.error $!.inspect
-      RJ.logger.error $!.backtrace
+      RJ.logger.warn $!.message
+      RJ.logger.warn RJ::Util.cleanup_backtrace($!.backtrace).join("\n")
       RJ.logger.error "message: #{payload.inspect}"
       nil
     end

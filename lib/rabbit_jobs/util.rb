@@ -1,21 +1,36 @@
 # -*- encoding : utf-8 -*-
 
-module RabbitJobs::Util
-  # clean old worker process
-  def self.check_pidfile(pidfile)
-    if File.exists?(pidfile)
-      pid = File.read(pidfile).to_i
-      begin
-        Process.kill(0, pid)
-        RJ.logger.info "Killing old rabbit_jobs process ##{pid}"
-        Process.kill("TERM", pid)
+module RabbitJobs
+  class Util
+    class << self
 
-        while Process.kill(0, pid)
-          sleep(0.5)
+      # clean old worker process
+      def check_pidfile(pidfile)
+        if File.exists?(pidfile)
+          pid = File.read(pidfile).to_i
+          begin
+            Process.kill(0, pid)
+            RJ.logger.info "Killing old rabbit_jobs process ##{pid}"
+            Process.kill("TERM", pid)
+
+            while Process.kill(0, pid)
+              sleep(0.5)
+            end
+          rescue
+            File.delete(pidfile) if File.exists?(pidfile)
+          end
         end
-      rescue
-        File.delete(pidfile) if File.exists?(pidfile)
       end
+
+      def cleanup_backtrace(trace_lines)
+        if defined?(Rails) && Rails.respond_to?(:root)
+          rails_root_path = Rails.root.to_s
+          trace_lines.dup.keep_if { |l| l[rails_root_path] }
+        else
+          trace_lines
+        end
+      end
+
     end
   end
 end
