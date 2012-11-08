@@ -10,16 +10,47 @@ module RabbitJobs
       def with_amqp
         raise ArgumentError unless block_given?
 
-        stop_reactor = !EM.reactor_running?
-
-        AMQP.start(RJ.config.url) {
-            puts "stop_reactor in amqp.run: #{stop_reactor}"
-            yield stop_reactor
-        }
+        if EM.reactor_running?
+          yield false
+        else
+          AMQP.start(RJ.config.url) {
+            yield true
+          }
+        end
       end
 
       def prepare_channel
-        AMQP.channel ||= AMQP::Channel.new
+        unless AMQP.channel
+          create_channel
+        else
+          create_channel unless AMQP.channel.open?
+        end
+      end
+
+      private
+
+      def url_from_opts(opts = {})
+        s = ""
+        s << opts[:scheme]
+        s << "://"
+        s << "#{opts[:user]}@" if opts[:user] && opts[:user] != 'guest'
+        s << opts[:host]
+        s << ":#{opts[:port]}" unless (opts[:scheme] == 'amqp' && opts[:port] == 5672) || (opts[:scheme] == 'amqps' && opts[:port] == 5673)
+        s << opts[:vhost]
+      end
+
+      def create_channel
+        AMQP.channel = AMQP::Channel.new(AMQP.connection, auto_recovery: true)
+
+        AMQP.connection.on_recovery do |conn, opts|
+          url = url_from_opts opts
+          RJ.logger.warn "[network failure] Connection to #{url} established."
+        end
+        AMQP.connection.on_tcp_connection_loss do |conn, opts|
+          url = url_from_opts opts
+          RJ.logger.warn "[network failure] Trying to reconnect to #{url}..."
+          conn.reconnect(false, 2)
+        end
       end
     end
   end
