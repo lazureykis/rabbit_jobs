@@ -18,6 +18,7 @@ module RabbitJobs::Job
 
     def run_perform
       begin
+        RJ.logger.info "Running perform on #{self.inspect}"
         self.class.perform(*params)
       rescue
         RJ.logger.warn(self.inspect)

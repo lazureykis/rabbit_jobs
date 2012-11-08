@@ -72,8 +72,7 @@ module RabbitJobs
       return @data[:connection_options] if @data[:connection_options]
 
       @data[:connection_options] = AMQP::Client.parse_connection_uri(url)
-      @data[:vhost] ||= "/"
-      @data[:vhost] = "/" if @data[:vhost].empty?
+      @data[:vhost] = "/" + @data[:vhost].to_s unless @data[:vhost].to_s.start_with?("/")
       @data[:connection_options]
     end
 

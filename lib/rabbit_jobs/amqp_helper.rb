@@ -13,7 +13,7 @@ module RabbitJobs
         if EM.reactor_running?
           yield false
         else
-          AMQP.start(RJ.config.url) {
+          AMQP.start(RJ.config.connection_options) {
             init_auto_recovery
             yield true
           }
