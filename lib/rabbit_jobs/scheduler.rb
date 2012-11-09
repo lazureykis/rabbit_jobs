@@ -70,6 +70,7 @@ module RabbitJobs
     end
 
     def rufus_scheduler
+      raise "Cannot start without eventmachine running." unless EM.reactor_running?
       @rufus_scheduler ||= Rufus::Scheduler.start_new
     end
 
@@ -88,16 +89,16 @@ module RabbitJobs
       $0 = self.process_name || "rj_scheduler"
 
       processed_count = 0
-      AmqpHelper.with_amqp do |stop_em|
+      RJ.run do
         AmqpHelper.prepare_channel
 
         load_schedule!
 
         check_shutdown = Proc.new {
           if @shutdown
-            AMQP.connection.disconnect {
+            RJ.stop {
               File.delete(self.pidfile) if self.pidfile
-              EM.stop { exit! }
+              exit!
             }
           end
         }

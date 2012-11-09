@@ -27,7 +27,7 @@ module RabbitJobs
       @queues || ['default']
     end
 
-    # Subscribes to channel and working on jobs
+    # Subscribes to queue and working on jobs
     def work(time = 0)
       return false unless startup
 
@@ -37,28 +37,22 @@ module RabbitJobs
       RJ.logger.info("Connecting to amqp...")
 
       begin
-        AmqpHelper.with_amqp do |stop_em|
-          AmqpHelper.prepare_channel
-          AMQP.channel.prefetch(1)
-
+        RJ.run do
           check_shutdown = Proc.new {
             if @shutdown
-              RJ.logger.info "Processed jobs: #{processed_count}"
-              RJ.logger.info "Stopping worker ##{Process.pid}..."
-
-              AMQP.connection.disconnect {
+              RJ.stop {
+                RJ.logger.info "Processed jobs: #{processed_count}"
+                RJ.logger.info "Stopping worker ##{Process.pid}..."
                 File.delete(self.pidfile) if self.pidfile && File.exists?(self.pidfile)
                 RJ.logger.info "##{Process.pid} stopped."
                 RJ.logger.close
-
-                EM.stop {
-                  exit!
-                }
+                exit!
               }
             end
           }
 
           queues.each do |routing_key|
+            AMQP.channel.prefetch(1)
             queue = AMQP.channel.queue(RJ.config.queue_name(routing_key), RJ.config[:queues][routing_key])
 
             RJ.logger.info "Worker ##{Process.pid} <= #{RJ.config.queue_name(routing_key)}"

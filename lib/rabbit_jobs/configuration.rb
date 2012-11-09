@@ -28,7 +28,7 @@ module RabbitJobs
 
     unless @@configuration
       self.configure do |c|
-        c.url 'amqp://localhost'
+        c.url 'amqp://localhost/'
         c.prefix 'rabbit_jobs'
       end
     end

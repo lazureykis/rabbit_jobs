@@ -18,12 +18,35 @@ require 'logger'
 module RabbitJobs
   extend self
 
-  def publish(klass, *params)
-    RabbitJobs::Publisher.publish(klass, *params)
+  def start
+    raise unless block_given?
+
+    AMQP.start {
+      AmqpHelper.prepare_connection
+      yield
+    }
   end
 
-  def publish_to(routing_key, klass, *params)
-    RabbitJobs::Publisher.publish_to(routing_key, klass, *params)
+  alias_method :run, :start
+
+  def stop
+    if AMQP.connection
+      AMQP.connection.disconnect {
+        EM.stop
+        yield if block_given?
+      }
+    else
+      EM.stop
+      yield if block_given?
+    end
+  end
+
+  def publish(klass, *params, &block)
+    RabbitJobs::Publisher.publish(klass, *params, &block)
+  end
+
+  def publish_to(routing_key, klass, *params, &block)
+    RabbitJobs::Publisher.publish_to(routing_key, klass, *params, &block)
   end
 
   attr_writer :logger

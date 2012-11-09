@@ -1,0 +1,16 @@
+#!/usr/bin/env ruby
+# -*- encoding : utf-8 -*-
+
+require 'bundler'
+Bundler.setup
+require File.expand_path('../../lib/rabbit_jobs', __FILE__)
+
+class MyCurrentJob
+  include RJ::Job
+  def self.perform(count = 0)
+    # RJ.publish_to(:default, MyCurrentJob, count - 1) if count > 0
+  end
+end
+
+worker = RJ::Worker.new
+worker.work

@@ -1,0 +1,30 @@
+#!/usr/bin/env ruby
+# -*- encoding : utf-8 -*-
+
+require 'bundler'
+Bundler.setup
+require File.expand_path('../../lib/rabbit_jobs', __FILE__)
+
+class MyCurrentJob
+  include RJ::Job
+  def self.perform(count)
+  end
+end
+
+RJ.configure { |c|
+  c.init_default_queue
+}
+
+1000.times {
+  RJ.run do
+    count = 10000
+    published = 0
+    count.times {
+      RJ.publish_to(:default, MyCurrentJob) {
+        published += 1
+        RJ.stop if published >= count
+      }
+    }
+  end
+  puts 'returned from em'
+}

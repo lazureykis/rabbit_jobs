@@ -12,4 +12,5 @@ group :development do
   gem 'autotest-fsevent'
   gem 'autotest-growl'
   gem 'simplecov', require: false
+  gem 'pry'
 end
