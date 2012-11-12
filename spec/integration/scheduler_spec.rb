@@ -12,7 +12,7 @@ describe RabbitJobs::Scheduler do
     scheduler.work(10) # work for 1 second
 
     RJ.config.queue 'default', RJ::Configuration::DEFAULT_QUEUE_PARAMS
-    puts "messages queued: " + RabbitJobs::Publisher.purge_queue('default').to_s
-    RabbitJobs::Publisher.purge_queue('default').should == 0
+    puts "messages queued: " + RJ.purge_queue('default').to_s
+    RJ.purge_queue('default').should == 0
   end
 end

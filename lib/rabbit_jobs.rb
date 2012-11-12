@@ -32,6 +32,7 @@ module RabbitJobs
   def stop
     if AMQP.connection
       AMQP.connection.disconnect {
+        AMQP.connection = nil
         EM.stop
         yield if block_given?
       }
@@ -41,12 +42,45 @@ module RabbitJobs
     end
   end
 
+  def running?
+    !!(AMQP.connection && AMQP.connection.open?)
+  end
+
   def publish(klass, *params, &block)
-    RabbitJobs::Publisher.publish(klass, *params, &block)
+    if RJ.running?
+      RJ::Publisher.publish(klass, *params, &block)
+    else
+      RJ.run {
+        RJ::Publisher.publish(klass, *params) {
+          RJ.stop
+        }
+      }
+    end
   end
 
   def publish_to(routing_key, klass, *params, &block)
-    RabbitJobs::Publisher.publish_to(routing_key, klass, *params, &block)
+    if RJ.running?
+      RJ::Publisher.publish_to(routing_key, klass, *params, &block)
+    else
+      RJ.run {
+        RJ::Publisher.publish_to(routing_key, klass, *params) {
+          RJ.stop
+        }
+      }
+    end
+  end
+
+  def purge_queue(*routing_keys, &block)
+    if RJ.running?
+      RJ::Publisher.purge_queue(*routing_keys, &block)
+    else
+      RJ.run {
+        RJ::Publisher.purge_queue(*routing_keys) { |count|
+          RJ.stop
+          return count
+        }
+      }
+    end
   end
 
   attr_writer :logger

@@ -38,7 +38,7 @@ module RabbitJobs
       true
     end
 
-    def purge_queue(*routing_keys)
+    def purge_queue(*routing_keys, &block)
       raise ArgumentError unless routing_keys && routing_keys.count > 0
 
       messages_count = 0

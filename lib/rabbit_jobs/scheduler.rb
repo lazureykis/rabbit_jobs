@@ -98,7 +98,7 @@ module RabbitJobs
           if @shutdown
             RJ.stop {
               File.delete(self.pidfile) if self.pidfile
-              exit!
+              # exit!
             }
           end
         }
