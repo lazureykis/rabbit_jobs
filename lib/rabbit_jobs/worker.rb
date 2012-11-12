@@ -51,6 +51,8 @@ module RabbitJobs
             end
           }
 
+          AmqpHelper.prepare_channel
+
           queues.each do |routing_key|
             AMQP.channel.prefetch(1)
             queue = AMQP.channel.queue(RJ.config.queue_name(routing_key), RJ.config[:queues][routing_key])

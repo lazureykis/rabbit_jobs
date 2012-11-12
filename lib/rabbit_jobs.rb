@@ -20,8 +20,9 @@ module RabbitJobs
 
   def start
     raise unless block_given?
+    raise if EM.reactor_running?
 
-    AMQP.start(RJ.config.url) {
+    EM.run {
       AmqpHelper.prepare_connection
       yield
     }
@@ -33,6 +34,7 @@ module RabbitJobs
     if AMQP.connection
       AMQP.connection.disconnect {
         AMQP.connection = nil
+        AMQP.channel = nil
         EM.stop
         yield if block_given?
       }
@@ -43,7 +45,6 @@ module RabbitJobs
   end
 
   def running?
-    # !!(AMQP.connection && AMQP.connection.open?)
     EM.reactor_running?
   end
 
@@ -54,6 +55,7 @@ module RabbitJobs
       RJ.run {
         RJ::Publisher.publish(klass, *params) {
           RJ.stop
+          yield if block_given?
         }
       }
     end
@@ -66,6 +68,7 @@ module RabbitJobs
       RJ.run {
         RJ::Publisher.publish_to(routing_key, klass, *params) {
           RJ.stop
+          yield if block_given?
         }
       }
     end
@@ -78,6 +81,7 @@ module RabbitJobs
       RJ.run {
         RJ::Publisher.purge_queue(*routing_keys) { |count|
           RJ.stop
+          yield if block_given?
           return count
         }
       }

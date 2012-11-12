@@ -8,7 +8,7 @@ module RabbitJobs
     class << self
 
       def prepare_connection
-        unless AMQP.connection
+        if !AMQP.connection || AMQP.connection.closed?
           AMQP.connection = AMQP.connect(RJ.config.url)
           init_auto_recovery
         end
@@ -19,12 +19,12 @@ module RabbitJobs
       end
 
       def init_auto_recovery
-        AMQP::Connection.on_recovery do |conn, opts|
+        AMQP.connection.on_recovery do |conn, opts|
           url = url_from_opts opts
           RJ.logger.warn "[network failure] Connection to #{url} established."
         end
 
-        AMQP::Connection.on_tcp_connection_loss do |conn, opts|
+        AMQP.connection.on_tcp_connection_loss do |conn, opts|
           url = url_from_opts(opts)
           RJ.logger.warn "[network failure] Trying to reconnect to #{url}..."
           puts "[network failure] Trying to reconnect to #{url}..."
