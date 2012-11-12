@@ -21,7 +21,7 @@ module RabbitJobs
   def start
     raise unless block_given?
 
-    AMQP.start {
+    AMQP.start(RJ.config.url) {
       AmqpHelper.prepare_connection
       yield
     }
@@ -43,7 +43,8 @@ module RabbitJobs
   end
 
   def running?
-    !!(AMQP.connection && AMQP.connection.open?)
+    # !!(AMQP.connection && AMQP.connection.open?)
+    EM.reactor_running?
   end
 
   def publish(klass, *params, &block)

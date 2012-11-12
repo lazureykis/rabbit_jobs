@@ -34,7 +34,7 @@ module RabbitJobs
       $0 = self.process_name || "rj_worker (#{queues.join(',')})"
 
       processed_count = 0
-      RJ.logger.info("Connecting to amqp...")
+      RJ.logger.info("Connecting to #{RJ.config.url.to_s}...")
 
       begin
         RJ.run do
