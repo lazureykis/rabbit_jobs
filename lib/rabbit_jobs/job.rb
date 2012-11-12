@@ -99,12 +99,16 @@ module RabbitJobs::Job
     rescue NameError
       RJ.logger.error "Cannot find job class '#{encoded['class']}'"
       :not_found
+    rescue JSON::ParserError
+      RJ.logger.error "[rj] Cannot initialize job. Json parsing error."
+      RJ.logger.error "[rj] Data received: #{payload.inspect}"
+      :parsing_error
     rescue
-      RJ.logger.error "JOB INIT ERROR at #{Time.now.to_s}:"
+      RJ.logger.warn "[rj] Cannot initialize job."
       RJ.logger.warn $!.message
       RJ.logger.warn RJ::Util.cleanup_backtrace($!.backtrace).join("\n")
-      RJ.logger.error "message: #{payload.inspect}"
-      nil
+      RJ.logger.warn "Data received: #{payload.inspect}"
+      :error
     end
   end
 end

@@ -4,7 +4,7 @@ require 'rabbit_jobs'
 require 'json'
 
 RabbitJobs.configure do |c|
-  c.url        "amqp://localhost/"
+  c.server "amqp://localhost/"
 
   c.queue 'rabbit_jobs_test1', durable: true, auto_delete: false, ack: true, arguments: {'x-ha-policy' => 'all'}
   c.queue 'rabbit_jobs_test2', durable: true, auto_delete: false, ack: true, arguments: {'x-ha-policy' => 'all'}

@@ -28,7 +28,6 @@ module RabbitJobs
 
     unless @@configuration
       self.configure do |c|
-        c.url 'amqp://localhost/'
         c.prefix 'rabbit_jobs'
       end
     end
@@ -41,6 +40,7 @@ module RabbitJobs
 
     DEFAULT_QUEUE_PARAMS = {
       auto_delete: false,
+      exclusive: false,
       durable: true,
       ack: true
     }
@@ -58,7 +58,7 @@ module RabbitJobs
     def initialize
       @data = {
         error_log: true,
-        url: 'amqp://localhost',
+        servers: [],
         prefix: 'rabbit_jobs',
         queues: {}
       }
@@ -92,14 +92,20 @@ module RabbitJobs
       @data[:error_log] = false
     end
 
-    def url(value = nil)
-      if value
-        raise ArgumentError unless value.is_a?(String) && value != ""
-        @data[:url] = value.to_s
-        @data.delete :connection_options
-      else
-        @data[:url] || 'amqp://localhost'
+    def servers(*value)
+      unless value.empty?
+        @data[:servers] = value.map(&:to_s).map(&:strip).keep_if{|url|!url.empty?}.map {|url|
+          normalize_url(url)
+        }
       end
+      @data[:servers]
+    end
+
+    def server(value = nil)
+      raise unless value && !value.to_s.empty?
+      value = normalize_url(value.to_s.strip)
+      @data[:servers] ||= []
+      @data[:servers] << value unless @data[:servers].include?(value)
     end
 
     def prefix(value = nil)
@@ -155,14 +161,25 @@ module RabbitJobs
       elsif defined?(Rails) && yaml[Rails.env.to_s]
         convert_yaml_config(yaml[Rails.env.to_s])
       else
-        @data = {url: nil, prefix: nil, queues: {}}
-        %w(url prefix mail_errors_to mail_errors_from).each do |m|
+        @data = {prefix: nil, queues: {}}
+        %w(prefix mail_errors_to mail_errors_from).each do |m|
           self.send(m, yaml[m])
+        end
+        yaml['servers'].split(",").each do |value|
+          server normalize_url(value)
         end
         yaml['queues'].each do |name, params|
           queue name, symbolize_keys!(params) || {}
         end
       end
+    end
+
+    private
+
+    def normalize_url(url_string)
+      uri = URI.parse(url_string)
+      uri.path = "" if uri.path.to_s == "/"
+      uri.to_s
     end
   end
 end

@@ -59,7 +59,7 @@ describe RabbitJobs::Configuration do
   it 'use default config' do
     RabbitJobs.config.to_hash.should == {
       error_log: true,
-      url: "amqp://localhost",
+      url: "amqp://localhost/",
       prefix: "rabbit_jobs",
       queues: {
         "default" => {
@@ -73,7 +73,7 @@ describe RabbitJobs::Configuration do
 
   it 'returns settings on some methods' do
     RabbitJobs.config.error_log == true
-    RabbitJobs.config.url.should == 'amqp://localhost'
+    RabbitJobs.config.servers.should == ['amqp://localhost/']
     RabbitJobs.config.routing_keys.should == []
     RabbitJobs.config.prefix.should == 'rabbit_jobs'
     RabbitJobs.config.queue_name('default').should == 'rabbit_jobs#default'

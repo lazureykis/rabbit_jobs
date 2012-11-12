@@ -34,7 +34,6 @@ module RabbitJobs
       $0 = self.process_name || "rj_worker (#{queues.join(',')})"
 
       processed_count = 0
-      RJ.logger.info("Connecting to #{RJ.config.url.to_s}...")
 
       begin
         RJ.run do
@@ -55,30 +54,40 @@ module RabbitJobs
 
           queues.each do |routing_key|
             AMQP.channel.prefetch(1)
-            queue = AMQP.channel.queue(RJ.config.queue_name(routing_key), RJ.config[:queues][routing_key])
-
-            RJ.logger.info "Worker ##{Process.pid} <= #{RJ.config.queue_name(routing_key)}"
-
-            explicit_ack = !!RJ.config[:queues][routing_key][:ack]
-
-            queue.subscribe(ack: explicit_ack) do |metadata, payload|
-              @job = RJ::Job.parse(payload)
-
-              if @job == :not_found
-                metadata.ack if explicit_ack
-              else
-                if @job.expired?
-                  RJ.logger.info "Job expired: #{@job.inspect}"
-                else
-                  @job.run_perform
-                  processed_count += 1
-                end
-
-                metadata.ack if explicit_ack
+            AMQP.channel.queue(RJ.config.queue_name(routing_key), RJ.config[:queues][routing_key]) { |queue, declare_ok|
+              unless declare_ok == 0
+                RJ.logger.error "Cannot define queue #{routing_key}."
+                next
               end
 
-              check_shutdown.call
-            end
+              RJ.logger.info "Worker ##{Process.pid} <= #{RJ.config.queue_name(routing_key)}"
+
+              explicit_ack = !!RJ.config[:queues][routing_key][:ack]
+
+              queue.subscribe(ack: explicit_ack) do |metadata, payload|
+                @job = RJ::Job.parse(payload)
+
+                if @job.is_a?(Symbol)
+                  # case @job
+                  # when :not_found
+                  # when :parsing_error
+                  # when :error
+                  # end
+                  metadata.ack if explicit_ack
+                else
+                  if @job.expired?
+                    RJ.logger.info "Job expired: #{@job.inspect}"
+                  else
+                    @job.run_perform
+                    processed_count += 1
+                  end
+
+                  metadata.ack if explicit_ack
+                end
+
+                check_shutdown.call
+              end
+            }
           end
 
           if time > 0
