@@ -90,7 +90,11 @@ module RabbitJobs
 
   attr_writer :logger
   def logger
-    @logger ||= Logger.new $stdout
+    unless @logger
+      @logger = Logger.new($stdout)
+      @logger.level = Logger::WARN
+    end
+    @logger
   end
 end
 
