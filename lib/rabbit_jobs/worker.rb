@@ -56,7 +56,7 @@ module RabbitJobs
             AMQP.channel.prefetch(1)
             AMQP.channel.queue(RJ.config.queue_name(routing_key), RJ.config[:queues][routing_key]) { |queue, declare_ok|
               unless declare_ok == 0
-                RJ.logger.error "Cannot define queue #{routing_key}."
+                RJ.logger.error "Cannot define queue #{routing_key}. Result: #{declare_ok}."
                 next
               end
 
