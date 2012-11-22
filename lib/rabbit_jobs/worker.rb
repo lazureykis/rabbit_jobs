@@ -55,12 +55,7 @@ module RabbitJobs
           queues.each do |routing_key|
             AMQP.channel.prefetch(1)
             AMQP.channel.queue(RJ.config.queue_name(routing_key), RJ.config[:queues][routing_key]) { |queue, declare_ok|
-              unless declare_ok == 0
-                RJ.logger.error "Cannot define queue #{routing_key}. Result: #{declare_ok}."
-                next
-              end
-
-              RJ.logger.info "Worker ##{Process.pid} <= #{RJ.config.queue_name(routing_key)}"
+              RJ.logger.info "Worker ##{Process.pid} <= #{RJ.config.queue_name(routing_key)} (#{declare_ok.to_i + 1})"
 
               explicit_ack = !!RJ.config[:queues][routing_key][:ack]
 
