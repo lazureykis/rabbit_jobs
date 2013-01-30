@@ -30,9 +30,9 @@ module RabbitJobs
           yield if block_given?
         end
       rescue
-        raise $!
-        RJ.logger.warn $!.inspect
+        RJ.logger.warn $!.message
         RJ.logger.warn $!.backtrace.join("\n")
+        raise $!
       end
 
       true

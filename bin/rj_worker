@@ -1,0 +1,24 @@
+#!/bin/env ruby
+require 'pathname'
+require 'bundler/setup'
+require 'rake'
+
+ENV['RAILS_ENV'] ||= 'development'
+
+rails_root = Pathname.new(Dir.getwd)
+
+require 'bundler/setup'
+require rails_root.join('config/application')
+Rails.application.require_environment!
+Rails.application.load_tasks
+
+case ARGV.first
+  when 'start'
+  Rake::Task['rj:worker:start'].invoke
+  when 'stop'
+  Rake::Task['rj:worker:stop'].invoke
+  when 'status'
+  Rake::Task['rj:worker:status'].invoke
+else
+  raise "usage: rj_worker <start>|<stop>|<status>"
+end

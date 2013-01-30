@@ -35,12 +35,14 @@ module RabbitJobs
       AMQP.connection.disconnect {
         AMQP.connection = nil
         AMQP.channel = nil
-        EM.stop
-        yield if block_given?
+        EM.stop {
+          yield if block_given?
+        }
       }
     else
-      EM.stop
-      yield if block_given?
+      EM.stop {
+        yield if block_given?
+      }
     end
   end
 
@@ -54,8 +56,9 @@ module RabbitJobs
     else
       RJ.run {
         RJ::Publisher.publish(klass, *params) {
-          RJ.stop
-          yield if block_given?
+          RJ.stop {
+            yield if block_given?
+          }
         }
       }
     end
@@ -67,8 +70,9 @@ module RabbitJobs
     else
       RJ.run {
         RJ::Publisher.publish_to(routing_key, klass, *params) {
-          RJ.stop
-          yield if block_given?
+          RJ.stop {
+            yield if block_given?
+          }
         }
       }
     end
@@ -80,9 +84,10 @@ module RabbitJobs
     else
       RJ.run {
         RJ::Publisher.purge_queue(*routing_keys) { |count|
-          RJ.stop
-          yield if block_given?
-          return count
+          RJ.stop {
+            yield if block_given?
+            return count
+          }
         }
       }
     end
@@ -92,9 +97,22 @@ module RabbitJobs
   def logger
     unless @logger
       @logger = Logger.new($stdout)
-      @logger.level = Logger::WARN
+      # @logger.level = Logger::WARN
     end
     @logger
+  end
+
+  def after_fork(&block)
+    raise unless block_given?
+    @_after_fork_callbacks ||= []
+    @_after_fork_callbacks << block
+  end
+
+  def _run_after_fork_callbacks
+    @_after_fork_callbacks ||= []
+    @_after_fork_callbacks.each { |callback|
+      callback.call
+    }
   end
 end
 

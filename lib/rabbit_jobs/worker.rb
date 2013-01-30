@@ -40,13 +40,12 @@ module RabbitJobs
           check_shutdown = Proc.new {
             if @shutdown
               RJ.stop {
-                RJ.logger.info "Processed jobs: #{processed_count}"
-                RJ.logger.info "Stopping worker ##{Process.pid}..."
                 File.delete(self.pidfile) if self.pidfile && File.exists?(self.pidfile)
-                RJ.logger.info "##{Process.pid} stopped."
-                RJ.logger.close
-                # exit!
               }
+              RJ.logger.info "rj_worker[##{Process.pid}] processed jobs: #{processed_count}."
+              RJ.logger.info "rj_worker[##{Process.pid}] stopped."
+              # RJ.logger.close
+              # exit!
             end
           }
 
@@ -55,7 +54,7 @@ module RabbitJobs
           queues.each do |routing_key|
             AMQP.channel.prefetch(1)
             AMQP.channel.queue(RJ.config.queue_name(routing_key), RJ.config[:queues][routing_key]) { |queue, declare_ok|
-              RJ.logger.info "Worker ##{Process.pid} <= #{RJ.config.queue_name(routing_key)} (#{declare_ok.to_i + 1})"
+              RJ.logger.info "rj_worker[##{Process.pid}] subscribed to #{RJ.config.queue_name(routing_key)} (#{declare_ok.to_i + 1})"
 
               explicit_ack = !!RJ.config[:queues][routing_key][:ack]
 
@@ -71,7 +70,7 @@ module RabbitJobs
                   metadata.ack if explicit_ack
                 else
                   if @job.expired?
-                    RJ.logger.info "Job expired: #{@job.inspect}"
+                    RJ.logger.warn "rj_worker[##{Process.pid}] Job expired: #{@job.to_ruby_string}"
                   else
                     @job.run_perform
                     processed_count += 1
@@ -95,6 +94,8 @@ module RabbitJobs
           EM.add_periodic_timer(1) do
             check_shutdown.call
           end
+
+          RJ.logger.info "rj_worker[##{Process.pid}] started."
         end
       rescue
         error = $!
@@ -124,6 +125,8 @@ module RabbitJobs
         # daemonize child process
         Process.daemon(true)
       end
+
+      count = RJ._run_after_fork_callbacks
 
       self.worker_pid ||= Process.pid
 

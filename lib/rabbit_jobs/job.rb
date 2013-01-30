@@ -18,11 +18,11 @@ module RabbitJobs::Job
 
     def run_perform
       begin
-        RJ.logger.info "Running perform on #{self.inspect}"
+        RJ.logger.info "rj_worker[##{Process.pid}] performing #{self.to_ruby_string}"
         self.class.perform(*params)
       rescue
-        RJ.logger.warn(self.inspect)
         RJ.logger.warn $!.message
+        RJ.logger.warn(self.to_ruby_string)
         RJ.logger.warn RJ::Util.cleanup_backtrace($!.backtrace).join("\n")
         run_on_error_hooks($!)
         RabbitJobs::ErrorMailer.report_error(self, $!)
@@ -70,6 +70,19 @@ module RabbitJobs::Job
         false
       end
     end
+
+    def to_ruby_string
+      rs = self.class.name
+      if params.count > 0
+        rs << "("
+          rs << params.map(&:to_s).join(", ")
+        rs << ")"
+      end
+      if opts.count > 0
+        rs << ", opts: "
+        rs << opts.inspect
+      end
+    end
   end
 
   module ClassMethods
@@ -100,11 +113,11 @@ module RabbitJobs::Job
       RJ.logger.error "Cannot find job class '#{encoded['class']}'"
       :not_found
     rescue JSON::ParserError
-      RJ.logger.error "[rj] Cannot initialize job. Json parsing error."
-      RJ.logger.error "[rj] Data received: #{payload.inspect}"
+      RJ.logger.error "rj[##{Process.pid}] Cannot initialize job. Json parsing error."
+      RJ.logger.error "rj[##{Process.pid}] Data received: #{payload.inspect}"
       :parsing_error
     rescue
-      RJ.logger.warn "[rj] Cannot initialize job."
+      RJ.logger.warn "rj[##{Process.pid}] Cannot initialize job."
       RJ.logger.warn $!.message
       RJ.logger.warn RJ::Util.cleanup_backtrace($!.backtrace).join("\n")
       RJ.logger.warn "Data received: #{payload.inspect}"

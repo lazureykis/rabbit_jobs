@@ -14,7 +14,7 @@ module RabbitJobs
 
       def prepare_connection
         if !AMQP.connection || AMQP.connection.closed?
-          RJ.logger.info("Connecting to #{RJ.config.servers.first.to_s}...")
+          RJ.logger.info("rj[##{Process.pid}] Connecting to #{RJ.config.servers.first.to_s}...")
           AMQP.connection = AMQP.connect(RJ.config.servers.first, auto_recovery: true)
           init_auto_recovery
         end
@@ -32,15 +32,15 @@ module RabbitJobs
             HOSTS_DEAD.clear
             HOSTS_FAILED.clear
             url = url_from_opts opts
-            RJ.logger.warn "[rj] Connection to #{url} recovered."
+            RJ.logger.warn "rj[##{Process.pid}] Connection to #{url} recovered."
           end
 
           AMQP.connection.on_open do |conn, opts|
-            RJ.logger.info "[rj] Connected."
+            RJ.logger.info "rj[##{Process.pid}] Connected."
           end
 
           # AMQP.connection.before_recovery do |conn, opts|
-          #   RJ.logger.info "[rj] before_recovery"
+          #   RJ.logger.info "rj[##{Process.pid}] before_recovery"
           # end
 
           # AMQP.connection.on_possible_authentication_failure do |conn, opts|
@@ -87,10 +87,10 @@ module RabbitJobs
 
       def reconnect_to(url)
         if AMQP.connection
-          RJ.logger.warn "[rj] Trying to reconnect to #{url}..."
+          RJ.logger.warn "rj[##{Process.pid}] Trying to reconnect to #{url}..."
           AMQP.connection.reconnect_to(url, 2)
         else
-          RJ.logger.warn "[rj] Trying to connect to #{url}..."
+          RJ.logger.warn "rj[##{Process.pid}] Trying to connect to #{url}..."
           AMQP.connection = AMQP.connect(url, auto_recovery: true)
           init_auto_recovery
         end

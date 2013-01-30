@@ -84,44 +84,48 @@ module RabbitJobs
 
     # Subscribes to channel and working on jobs
     def work(time = 0)
-      return false unless startup
+      begin
+        return false unless startup
 
-      $0 = self.process_name || "rj_scheduler"
+        $0 = self.process_name || "rj_scheduler"
 
-      processed_count = 0
-      RJ.run do
-        AmqpHelper.prepare_channel
+        processed_count = 0
+        RJ.run do
+          AmqpHelper.prepare_channel
 
-        load_schedule!
+          load_schedule!
 
-        check_shutdown = Proc.new {
-          if @shutdown
-            RJ.stop {
-              File.delete(self.pidfile) if self.pidfile
-              # exit!
-            }
+          check_shutdown = Proc.new {
+            if @shutdown
+              RJ.stop {
+                File.delete(self.pidfile) if self.pidfile
+              }
+              RJ.logger.info "rj_scheduler[##{Process.pid}] stopped."
+            end
+          }
+
+          if time > 0
+            EM.add_timer(time) do
+              self.shutdown
+            end
           end
-        }
 
-        if time > 0
-          # for debugging
-          EM.add_timer(time) do
-            self.shutdown
+          EM.add_periodic_timer(1) do
+            check_shutdown.call
           end
-        end
 
-        RJ.logger.info "Scheduler started."
-
-        EM.add_periodic_timer(1) do
-          check_shutdown.call
+          RJ.logger.info "rj_scheduler[##{Process.pid}] started."
         end
+      rescue => e
+        RJ.logger.error e.message
+        RJ.logger.error e.backtrace.join("\r\n")
       end
 
       true
     end
 
     def shutdown
-      RJ.logger.warn "Stopping scheduler..."
+      RJ.logger.info "rj_scheduler[##{Process.pid}] stopping..."
       @shutdown = true
     end
 
@@ -139,13 +143,13 @@ module RabbitJobs
         end
       end
 
-      if self.pidfile
-        File.open(self.pidfile, 'w') { |f| f << Process.pid }
-      end
-
       # Fix buffering so we can `rake rj:work > resque.log` and
       # get output from the child in there.
       $stdout.sync = true
+
+      if self.pidfile
+        File.open(self.pidfile, 'w') { |f| f << Process.pid }
+      end
 
       @shutdown = false
 

@@ -10,7 +10,7 @@ module RabbitJobs
           pid = File.read(pidfile).to_i
           begin
             Process.kill(0, pid)
-            RJ.logger.info "Killing old rabbit_jobs process ##{pid}"
+            RJ.logger.info "Killing stale rj_worker[##{pid}]"
             Process.kill("TERM", pid)
 
             while Process.kill(0, pid)
