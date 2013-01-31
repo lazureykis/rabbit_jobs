@@ -1,4 +1,6 @@
 # -*- encoding : utf-8 -*-
+require 'logger'
+require 'rake'
 
 require 'rabbit_jobs/version'
 
@@ -12,8 +14,7 @@ require 'rabbit_jobs/job'
 require 'rabbit_jobs/publisher'
 require 'rabbit_jobs/worker'
 require 'rabbit_jobs/scheduler'
-
-require 'logger'
+require 'rabbit_jobs/tasks'
 
 module RabbitJobs
   extend self
