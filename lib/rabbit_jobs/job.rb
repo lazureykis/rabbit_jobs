@@ -18,10 +18,11 @@ module RabbitJobs::Job
 
     def run_perform
       begin
-        RJ.logger.info "rj_worker[##{Process.pid}] performing #{self.to_ruby_string}"
-        t = Time.now
+        start_time = Time.now
+        RJ.logger.info "rj_worker[##{Process.pid}] performing #{self.to_ruby_string} at #{start_time.utc}"
         self.class.perform(*params)
-        RJ.logger.info "rj_worker[##{Process.pid}] processed  #{self.to_ruby_string} in #{Time.now - t} seconds."
+        execution_time = Time.now - start_time
+        RJ.logger.info "rj_worker[##{Process.pid}] processed  #{self.to_ruby_string} in #{execution_time} seconds."
       rescue
         RJ.logger.warn $!.message
         RJ.logger.warn(self.to_ruby_string)
