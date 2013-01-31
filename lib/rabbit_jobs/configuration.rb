@@ -58,9 +58,10 @@ module RabbitJobs
     def initialize
       @data = {
         error_log: true,
+        workers: HashWithIndifferentAccess.new,
         servers: [],
         prefix: 'rabbit_jobs',
-        queues: {}
+        queues: HashWithIndifferentAccess.new
       }
     end
 
@@ -130,6 +131,25 @@ module RabbitJobs
       end
     end
 
+    def workers
+      @data[:workers] ||= HashWithIndifferentAccess.new
+    end
+
+    def worker(name, params = {})
+      raise ArgumentError.new("name is #{name.inspect}") unless name && name.is_a?(String) && name != ""
+      raise ArgumentError.new("params is #{params.inspect}") unless params && params.is_a?(Hash)
+      raise ArgumentError.new("params should have :instances and :queues keys.") unless params[:instances] && params[:queues]
+
+      name = name.downcase
+
+      @data[:workers] ||= HashWithIndifferentAccess.new
+      if @data[:workers][name]
+        @data[:workers][name].merge!(params)
+      else
+        @data[:workers][name] = params
+      end
+    end
+
     def routing_keys
       @data[:queues].keys
     end
@@ -170,6 +190,10 @@ module RabbitJobs
         end
         yaml['queues'].each do |name, params|
           queue name, symbolize_keys!(params) || {}
+        end
+
+        yaml['workers'].each do |name, params|
+          worker name, symbolize_keys!(params) || {}
         end
       end
     end

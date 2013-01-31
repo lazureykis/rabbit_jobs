@@ -31,7 +31,7 @@ namespace :rj do
     desc "Start a Rabbit Jobs workers from config/rj_workers.yml"
     task :start => [:environment, :load_config] do
       make_dirs
-      @rj_config.each do |worker_name, worker_props|
+      RJ.config.workers.each do |worker_name, worker_props|
         worker_num = 1
         worker_props['instances'].to_i.times do
           unless @do_only.count > 0 && !@do_only.include?("#{worker_name}-#{worker_num}")
@@ -58,7 +58,7 @@ namespace :rj do
       pids = {}
       errors = []
 
-      @rj_config.each do |worker_name, worker_props|
+      RJ.config.workers.each do |worker_name, worker_props|
         worker_num = 1
         worker_props['instances'].to_i.times do
           unless (@do_only.count > 0) && !@do_only.include?("#{worker_name}-#{worker_num}")
@@ -117,7 +117,7 @@ namespace :rj do
 
       errors ||= 0
 
-      @rj_config.each do |worker_name, worker_props|
+      RJ.config.workers.each do |worker_name, worker_props|
         worker_num = 1
         worker_props['instances'].to_i.times do
           pidfile = app_root.join("tmp/pids/rj_worker_#{rails_env}_#{worker_name}_#{worker_num}.pid")
@@ -144,13 +144,10 @@ namespace :rj do
     end
 
     task :load_config do
-      @rj_config = YAML.load(open app_root.join("config/rj_workers.yml"))
-      @rj_config = @rj_config[rails_env]
-
       @do_only = ENV["WORKERS"] ? ENV["WORKERS"].strip.split : []
       @do_only.each do |worker|
         worker_name, worker_num = worker.split('-')
-        unless @rj_config.keys.include?(worker_name) && @rj_config[worker_name]['instances'].to_i >= worker_num.to_i
+        unless RJ.config.workers.keys.include?(worker_name) && RJ.config.workers[worker_name][:instances].to_i >= worker_num.to_i
           raise "Worker #{worker} not found."
         end
       end
