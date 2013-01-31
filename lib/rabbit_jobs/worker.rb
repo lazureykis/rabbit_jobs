@@ -39,11 +39,11 @@ module RabbitJobs
         RJ.run do
           check_shutdown = Proc.new {
             if @shutdown
-              RJ.stop {
-                File.delete(self.pidfile) if self.pidfile && File.exists?(self.pidfile)
-              }
+              RJ.stop
               RJ.logger.info "rj_worker[##{Process.pid}] processed jobs: #{processed_count}."
               RJ.logger.info "rj_worker[##{Process.pid}] stopped."
+
+              File.delete(self.pidfile) if self.pidfile && File.exists?(self.pidfile)
               # RJ.logger.close
               # exit!
             end

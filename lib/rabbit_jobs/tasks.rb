@@ -107,15 +107,13 @@ namespace :rj do
         sleep 1
       end
 
-      exit(1) if not errors.empty?
+      fail(errors.join("\r\n")) if not errors.empty?
 
       puts "\nrj_worker stopped."
-      exit(0)
     end
 
     task :status => :load_config do
-
-      errors ||= 0
+      errors = []
 
       RJ.config.workers.each do |worker_name, worker_props|
         worker_num = 1
@@ -123,24 +121,25 @@ namespace :rj do
           pidfile = app_root.join("tmp/pids/rj_worker_#{rails_env}_#{worker_name}_#{worker_num}.pid")
 
           unless File.exists?(pidfile)
-            puts "Pidfile not found: #{pidfile}"
-            errors += 1
+            errors << "Pidfile not found: #{pidfile}"
           else
             pid = open(pidfile).read.to_i
             begin
               raise "must return 1" unless Process.kill(0, pid) == 1
             rescue
-              puts "Pidfile found but process not respond: #{pidfile}\r\nRemoving pidfile."
+              errors << "Pidfile found but process not respond: #{pidfile}\r\nRemoving pidfile."
               File.delete(pidfile) if File.exist?(pidfile)
-              errors += 1
             end
           end
           worker_num += 1
         end
       end
 
-      puts "ok" if errors == 0
-      exit errors
+      if errors.empty?
+        puts "ok"
+      else
+        fail errors.join("\r\n")
+      end
     end
 
     task :load_config do
@@ -165,7 +164,7 @@ namespace :rj do
       RJ.logger = ::Logger.new(app_root.join('log/rj_scheduler.log'), 'daily')
       # RJ.logger.level = ENV['VERBOSE'] ? Logger::INFO : Logger::WARN
 
-      scheduler.work
+      exit! if scheduler.work
       puts "rj_scheduler started."
     end
 
@@ -173,9 +172,7 @@ namespace :rj do
       pidfile = app_root.join('tmp/pids/rj_scheduler.pid')
 
       unless File.exists?(pidfile)
-        msg = "Pidfile not found: #{pidfile}"
-        $stderr.puts msg
-        exit(1)
+        fail "Pidfile not found: #{pidfile}"
       else
         pid = open(pidfile).read.to_i
         begin
@@ -184,7 +181,7 @@ namespace :rj do
           $stderr.puts "Not found process: #{pid} from #{pidfile}"
           $stderr.puts "Removing pidfile ..."
           File.delete(pidfile) if File.exist?(pidfile)
-          exit(1)
+          fail "Not found process: #{pid} from #{pidfile}"
         end
 
         while true
@@ -193,7 +190,7 @@ namespace :rj do
             sleep 0.1
           rescue
             puts "rj_scheduler[##{pid}] stopped."
-            exit(0)
+            break
           end
         end
       end
@@ -203,8 +200,8 @@ namespace :rj do
       pidfile = app_root.join('tmp/pids/rj_scheduler.pid')
 
       unless File.exists?(pidfile)
-        puts "Pidfile not found: #{pidfile}"
-        exit(1)
+        # puts "Pidfile not found: #{pidfile}"
+        fail "Pidfile not found: #{pidfile}"
       else
         pid = open(pidfile).read.to_i
         begin
@@ -214,10 +211,9 @@ namespace :rj do
           puts "Pidfile found but process not respond: #{pidfile}"
           puts "Removing pidfile."
           File.delete(pidfile) if File.exist?(pidfile)
-          exit(1)
+          fail "Pidfile found but process not respond: #{pidfile}"
         end
       end
-      exit(0)
     end
   end
 
