@@ -98,7 +98,7 @@ module RabbitJobs
           check_shutdown = Proc.new {
             if @shutdown
               RJ.stop
-              RJ.logger.info "rj_scheduler[##{Process.pid}] stopped."
+              RJ.logger.info "Stopped."
 
               File.delete(self.pidfile) if self.pidfile
             end
@@ -114,7 +114,7 @@ module RabbitJobs
             check_shutdown.call
           end
 
-          RJ.logger.info "rj_scheduler[##{Process.pid}] started."
+          RJ.logger.info "Started."
         end
       rescue => e
         error = $!
@@ -131,7 +131,7 @@ module RabbitJobs
     end
 
     def shutdown
-      RJ.logger.info "rj_scheduler[##{Process.pid}] stopping..."
+      RJ.logger.info "Stopping..."
       @shutdown = true
     end
 

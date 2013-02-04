@@ -40,8 +40,8 @@ module RabbitJobs
           check_shutdown = Proc.new {
             if @shutdown
               RJ.stop
-              RJ.logger.info "rj_worker[##{Process.pid}] processed jobs: #{processed_count}."
-              RJ.logger.info "rj_worker[##{Process.pid}] stopped."
+              RJ.logger.info "Processed jobs: #{processed_count}."
+              RJ.logger.info "Stopped."
 
               File.delete(self.pidfile) if self.pidfile && File.exists?(self.pidfile)
               # RJ.logger.close
@@ -54,7 +54,7 @@ module RabbitJobs
           queues.each do |routing_key|
             AMQP.channel.prefetch(1)
             AMQP.channel.queue(RJ.config.queue_name(routing_key), RJ.config[:queues][routing_key]) { |queue, declare_ok|
-              RJ.logger.info "rj_worker[##{Process.pid}] subscribed to #{RJ.config.queue_name(routing_key)} (#{declare_ok.to_i + 1})"
+              RJ.logger.info "Subscribed to #{RJ.config.queue_name(routing_key)}(#{declare_ok.to_i + 1})"
 
               explicit_ack = !!RJ.config[:queues][routing_key][:ack]
 
@@ -70,7 +70,7 @@ module RabbitJobs
                   metadata.ack if explicit_ack
                 else
                   if @job.expired?
-                    RJ.logger.warn "rj_worker[##{Process.pid}] Job expired: #{@job.to_ruby_string}"
+                    RJ.logger.warn "Job expired: #{@job.to_ruby_string}"
                   else
                     @job.run_perform
                     processed_count += 1
@@ -95,7 +95,7 @@ module RabbitJobs
             check_shutdown.call
           end
 
-          RJ.logger.info "rj_worker[##{Process.pid}] started."
+          RJ.logger.info "Started."
         end
       rescue
         error = $!

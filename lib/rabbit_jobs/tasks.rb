@@ -42,7 +42,9 @@ namespace :rj do
             worker.process_name = "rj_worker #{worker_name}##{worker_num} #{rails_env} [#{queues.join(',')}]"
             worker.pidfile = app_root.join("tmp/pids/rj_worker_#{rails_env}_#{worker_name}_#{worker_num}.pid")
             RJ.logger = ::Logger.new(app_root.join("log/rj_worker_#{rails_env}_#{worker_name}_#{worker_num}.log"), 'daily')
-            # RJ.logger.level = ENV['VERBOSE'] ? Logger::INFO : Logger::WARN
+            RJ.logger.formatter = nil
+            RJ.logger.progname = 'rj_worker'
+            RJ.logger.level = Logger::INFO if ENV['VERBOSE']
             puts "Starting #{worker_name}##{worker_num}"
 
             # завершаем копию процесса, если воркер уже отработал
@@ -162,7 +164,9 @@ namespace :rj do
       scheduler.background = true
       scheduler.pidfile = app_root.join('tmp/pids/rj_scheduler.pid')
       RJ.logger = ::Logger.new(app_root.join('log/rj_scheduler.log'), 'daily')
-      # RJ.logger.level = ENV['VERBOSE'] ? Logger::INFO : Logger::WARN
+      RJ.logger.formatter = nil
+      RJ.logger.progname = 'rj_scheduler'
+      RJ.logger.level = Logger::INFO if ENV['VERBOSE']
 
       exit! if scheduler.work
       puts "rj_scheduler started."

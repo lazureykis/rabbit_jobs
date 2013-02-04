@@ -98,7 +98,9 @@ module RabbitJobs
   def logger
     unless @logger
       @logger = Logger.new($stdout)
-      # @logger.level = Logger::WARN
+      @logger.level = Logger::WARN
+      @logger.formatter = nil
+      @logger.progname = 'rj'
     end
     @logger
   end
