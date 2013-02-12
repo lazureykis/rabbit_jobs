@@ -90,7 +90,7 @@ module RabbitJobs
                 begin
                   processed_count += 1 if process_message(metadata, payload)
                 rescue
-                  RJ.logger.warn "process_message failed: #{{metadata: metadata, payload: payload}.inspect}"
+                  RJ.logger.warn "process_message failed. payload: #{payload.inspect}"
                 end
 
                 metadata.ack if explicit_ack
