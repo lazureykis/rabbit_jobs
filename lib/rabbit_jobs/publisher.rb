@@ -27,6 +27,7 @@ module RabbitJobs
     end
 
     def direct_publish_to(routing_key, payload, ex = {}, &block)
+      ex = {name: ex} if ex.is_a?(String)
       raise ArgumentError.new("Need to pass exchange name") if ex.size > 0 && ex[:name].to_s.empty?
 
       begin
@@ -35,7 +36,6 @@ module RabbitJobs
         if ex.size > 0
           AMQP::Exchange.new(AMQP.channel, :direct, ex[:name].to_s, Configuration::DEFAULT_EXCHANGE_PARAMS.merge(ex[:params] || {})) do |exchange|
             exchange.publish(payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({key: routing_key.to_s})) do
-              puts 'published'
               yield if block_given?
             end
           end
