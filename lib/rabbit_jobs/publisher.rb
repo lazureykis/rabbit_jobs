@@ -13,21 +13,36 @@ module RabbitJobs
       publish_to(RJ.config.default_queue, klass, *params, &block)
     end
 
-    def publish_to(routing_key, klass, *params)
+    def publish_to(routing_key, klass, *params, &block)
       raise ArgumentError.new("klass=#{klass.inspect}") unless klass && (klass.is_a?(Class) || klass.is_a?(String))
       raise ArgumentError.new("routing_key=#{routing_key}") unless routing_key && (routing_key.is_a?(Symbol) || routing_key.is_a?(String)) && !!RJ.config[:queues][routing_key.to_s]
 
-      begin
-        payload = {
-          'class' => klass.to_s,
-          'opts' => {'created_at' => Time.now.to_i},
-          'params' => params
-          }.to_json
+      payload = {
+        'class' => klass.to_s,
+        'opts' => {'created_at' => Time.now.to_i},
+        'params' => params
+        }.to_json
 
+      direct_publish_to(RJ.config.queue_name(routing_key.to_s), payload, &block)
+    end
+
+    def direct_publish_to(routing_key, payload, ex = {}, &block)
+      raise ArgumentError.new("Need to pass exchange name") if ex.size > 0 && ex[:name].to_s.empty?
+
+      begin
         AmqpHelper.prepare_channel
 
-        AMQP.channel.default_exchange.publish(payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({key: RJ.config.queue_name(routing_key.to_s)})) do
-          yield if block_given?
+        if ex.size > 0
+          AMQP::Exchange.new(AMQP.channel, :direct, ex[:name].to_s, Configuration::DEFAULT_EXCHANGE_PARAMS.merge(ex[:params] || {})) do |exchange|
+            exchange.publish(payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({key: routing_key.to_s})) do
+              puts 'published'
+              yield if block_given?
+            end
+          end
+        else
+          AMQP.channel.default_exchange.publish(payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({key: routing_key.to_s})) do
+            yield if block_given?
+          end
         end
       rescue
         RJ.logger.warn $!.message

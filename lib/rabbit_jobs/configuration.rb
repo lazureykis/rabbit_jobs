@@ -38,6 +38,11 @@ module RabbitJobs
   class Configuration
     include Helpers
 
+    DEFAULT_EXCHANGE_PARAMS = {
+      auto_delete: false,
+      durable: true
+    }
+
     DEFAULT_QUEUE_PARAMS = {
       auto_delete: false,
       exclusive: false,

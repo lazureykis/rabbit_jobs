@@ -79,6 +79,20 @@ module RabbitJobs
     end
   end
 
+  def direct_publish_to(routing_key, payload, ex = {}, &block)
+    if RJ.running?
+      RJ::Publisher.direct_publish_to(routing_key, payload, ex, &block)
+    else
+      RJ.run {
+        RJ::Publisher.direct_publish_to(routing_key, payload, ex) {
+          RJ.stop {
+            yield if block_given?
+          }
+        }
+      }
+    end
+  end
+
   def purge_queue(*routing_keys, &block)
     if RJ.running?
       RJ::Publisher.purge_queue(*routing_keys, &block)
