@@ -25,6 +25,14 @@ module RabbitJobs
       true
     end
 
+    def queue_name(routing_key)
+      RJ.config.queue_name(routing_key)
+    end
+
+    def queue_params(routing_key)
+      RJ.config[:queues][routing_key]
+    end
+
     # Workers should be initialized with an array of string queue
     # names. The order is important: a Worker will check the first
     # queue given for a job. If none is found, it will check the
@@ -74,10 +82,10 @@ module RabbitJobs
 
           queues.each do |routing_key|
             AMQP.channel.prefetch(1)
-            AMQP.channel.queue(RJ.config.queue_name(routing_key), RJ.config[:queues][routing_key]) { |queue, declare_ok|
-              explicit_ack = !!RJ.config[:queues][routing_key][:ack]
+            AMQP.channel.queue(queue_name(routing_key), queue_params(routing_key)) { |queue, declare_ok|
+              explicit_ack = !!queue_params(routing_key)[:ack]
 
-              RJ.logger.info "Subscribing to #{RJ.config.queue_name(routing_key)}"
+              RJ.logger.info "Subscribing to #{queue_name(routing_key)}"
               queue.subscribe(ack: explicit_ack) do |metadata, payload|
                 begin
                   processed_count += 1 if process_message(metadata, payload)
