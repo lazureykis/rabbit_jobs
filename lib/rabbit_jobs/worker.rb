@@ -4,6 +4,27 @@ module RabbitJobs
   class Worker
     attr_accessor :pidfile, :background, :process_name, :worker_pid
 
+    def process_message(metadata, payload)
+      job = RJ::Job.parse(payload)
+
+      if job.is_a?(Symbol)
+        # case @job
+        # when :not_found
+        # when :parsing_error
+        # when :error
+        # end
+      else
+        if job.expired?
+          RJ.logger.warn "Job expired: #{job.to_ruby_string}"
+          false
+        else
+          job.run_perform
+        end
+      end
+
+      true
+    end
+
     # Workers should be initialized with an array of string queue
     # names. The order is important: a Worker will check the first
     # queue given for a job. If none is found, it will check the
@@ -54,31 +75,17 @@ module RabbitJobs
           queues.each do |routing_key|
             AMQP.channel.prefetch(1)
             AMQP.channel.queue(RJ.config.queue_name(routing_key), RJ.config[:queues][routing_key]) { |queue, declare_ok|
-              RJ.logger.info "Subscribed to #{RJ.config.queue_name(routing_key)}(#{declare_ok.to_i + 1})"
-
               explicit_ack = !!RJ.config[:queues][routing_key][:ack]
 
+              RJ.logger.info "Subscribing to #{RJ.config.queue_name(routing_key)}"
               queue.subscribe(ack: explicit_ack) do |metadata, payload|
-                @job = RJ::Job.parse(payload)
-
-                if @job.is_a?(Symbol)
-                  # case @job
-                  # when :not_found
-                  # when :parsing_error
-                  # when :error
-                  # end
-                  metadata.ack if explicit_ack
-                else
-                  if @job.expired?
-                    RJ.logger.warn "Job expired: #{@job.to_ruby_string}"
-                  else
-                    @job.run_perform
-                    processed_count += 1
-                  end
-
-                  metadata.ack if explicit_ack
+                begin
+                  processed_count += 1 if process_message(metadata, payload)
+                rescue
+                  RJ.logger.warn "process_message failed: #{{metadata: metadata, payload: payload}.inspect}"
                 end
 
+                metadata.ack if explicit_ack
                 check_shutdown.call
               end
             }
