@@ -8,7 +8,7 @@ describe RabbitJobs::Worker do
     end
 
     it '#initialize with default options' do
-      @worker.queues.should == ['default']
+      @worker.queues.should == [:default]
     end
 
     it '#startup should set @shutdown to false' do

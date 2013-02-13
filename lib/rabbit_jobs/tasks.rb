@@ -32,10 +32,11 @@ namespace :rj do
     task :start => [:environment, :load_config] do
       make_dirs
       RJ.config.workers.each do |worker_name, worker_props|
-        worker_num = 1
-        worker_props['instances'].to_i.times do
+        puts worker_props.inspect
+        (1..worker_props[:instances].to_i).each do |worker_num|
           unless @do_only.count > 0 && !@do_only.include?("#{worker_name}-#{worker_num}")
-            queues = (worker_props['queue'] || worker_props['queues'] || "").split(' ')
+            $stdout.puts 'initializing worker'
+            queues = (worker_props[:queue] || worker_props[:queues] || "").split(' ')
 
             worker = RJ::Worker.new(*queues)
             worker.background = true
@@ -50,7 +51,6 @@ namespace :rj do
             # завершаем копию процесса, если воркер уже отработал
             exit! if worker.work
           end
-          worker_num += 1
         end
       end
     end
@@ -62,7 +62,7 @@ namespace :rj do
 
       RJ.config.workers.each do |worker_name, worker_props|
         worker_num = 1
-        worker_props['instances'].to_i.times do
+        worker_props[:instances].to_i.times do
           unless (@do_only.count > 0) && !@do_only.include?("#{worker_name}-#{worker_num}")
             pidfile = app_root.join("tmp/pids/rj_worker_#{rails_env}_#{worker_name}_#{worker_num}.pid")
 
@@ -73,7 +73,7 @@ namespace :rj do
             else
               pid = open(pidfile).read.to_i
               pids[pid] = pidfile
-              queues = (worker_props['queue'] || worker_props['queues'] || "").split(' ')
+              queues = (worker_props[:queue] || worker_props[:queues] || "").split(' ')
               puts "Stopping rj_worker #{worker_name}##{worker_num} #{rails_env} [#{queues.join(',')}]"
             end
           end
@@ -119,7 +119,7 @@ namespace :rj do
 
       RJ.config.workers.each do |worker_name, worker_props|
         worker_num = 1
-        worker_props['instances'].to_i.times do
+        worker_props[:instances].to_i.times do
           pidfile = app_root.join("tmp/pids/rj_worker_#{rails_env}_#{worker_name}_#{worker_num}.pid")
 
           unless File.exists?(pidfile)

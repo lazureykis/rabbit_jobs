@@ -63,10 +63,10 @@ module RabbitJobs
     def initialize
       @data = {
         error_log: true,
-        workers: HashWithIndifferentAccess.new,
+        workers: {},
         servers: [],
         prefix: 'rabbit_jobs',
-        queues: HashWithIndifferentAccess.new
+        queues: {}
       }
     end
 
@@ -127,7 +127,7 @@ module RabbitJobs
       raise ArgumentError.new("name is #{name.inspect}") unless name && name.is_a?(String) && name != ""
       raise ArgumentError.new("params is #{params.inspect}") unless params && params.is_a?(Hash)
 
-      name = name.downcase
+      name = name.downcase.to_sym
 
       if @data[:queues][name]
         @data[:queues][name].merge!(params)
@@ -137,7 +137,7 @@ module RabbitJobs
     end
 
     def workers
-      @data[:workers] ||= HashWithIndifferentAccess.new
+      @data[:workers] ||= {}
     end
 
     def worker(name, params = {})
@@ -145,9 +145,9 @@ module RabbitJobs
       raise ArgumentError.new("params is #{params.inspect}") unless params && params.is_a?(Hash)
       raise ArgumentError.new("params should have :instances and :queues keys.") unless params[:instances] && params[:queues]
 
-      name = name.downcase
+      name = name.downcase.to_sym
 
-      @data[:workers] ||= HashWithIndifferentAccess.new
+      @data[:workers] ||= {}
       if @data[:workers][name]
         @data[:workers][name].merge!(params)
       else
@@ -163,12 +163,17 @@ module RabbitJobs
       queue('default', DEFAULT_QUEUE_PARAMS) if @data[:queues].empty?
     end
 
+    def worker_queues
+      @data[:workers].values.map{|w| w[:queues].to_s.split(' ')}.flatten.uniq.sort
+    end
+
     def default_queue
       queue('default', DEFAULT_QUEUE_PARAMS) if @data[:queues].empty?
-      key = @data[:queues].keys.first
+      worker_queues.first
     end
 
     def queue_name(routing_key)
+      routing_key = routing_key.to_sym
       @data[:queues][routing_key][:ignore_prefix] ? routing_key : [@data[:prefix], routing_key].join('#')
     end
 

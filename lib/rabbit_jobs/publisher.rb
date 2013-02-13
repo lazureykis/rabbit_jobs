@@ -15,7 +15,7 @@ module RabbitJobs
 
     def publish_to(routing_key, klass, *params, &block)
       raise ArgumentError.new("klass=#{klass.inspect}") unless klass && (klass.is_a?(Class) || klass.is_a?(String))
-      raise ArgumentError.new("routing_key=#{routing_key}") unless routing_key && (routing_key.is_a?(Symbol) || routing_key.is_a?(String)) && !!RJ.config[:queues][routing_key.to_s]
+      raise ArgumentError.new("routing_key=#{routing_key}") unless routing_key && (routing_key.is_a?(Symbol) || routing_key.is_a?(String)) && !!RJ.config[:queues][routing_key.to_sym]
 
       payload = {
         'class' => klass.to_s,
@@ -23,7 +23,7 @@ module RabbitJobs
         'params' => params
         }.to_json
 
-      direct_publish_to(RJ.config.queue_name(routing_key.to_s), payload, &block)
+      direct_publish_to(RJ.config.queue_name(routing_key.to_sym), payload, &block)
     end
 
     def direct_publish_to(routing_key, payload, ex = {}, &block)
@@ -35,12 +35,12 @@ module RabbitJobs
 
         if ex.size > 0
           AMQP::Exchange.new(AMQP.channel, :direct, ex[:name].to_s, Configuration::DEFAULT_EXCHANGE_PARAMS.merge(ex[:params] || {})) do |exchange|
-            exchange.publish(payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({key: routing_key.to_s})) do
+            exchange.publish(payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({key: routing_key.to_sym})) do
               yield if block_given?
             end
           end
         else
-          AMQP.channel.default_exchange.publish(payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({key: routing_key.to_s})) do
+          AMQP.channel.default_exchange.publish(payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({key: routing_key.to_sym})) do
             yield if block_given?
           end
         end
@@ -61,20 +61,23 @@ module RabbitJobs
 
       AmqpHelper.prepare_channel
 
-      routing_keys.each do |routing_key|
-        queue = AMQP.channel.queue(RJ.config.queue_name(routing_key), RJ.config[:queues][routing_key.to_s])
-        queue.status do |messages, consumers|
-          # messages_count += messages
-          queue.purge do |ret|
-            raise "Cannot purge queue #{routing_key.to_s}." unless ret.is_a?(AMQ::Protocol::Queue::PurgeOk)
-            messages_count += ret.message_count
-            count -= 1
-            if count == 0
-              yield messages_count if block_given?
+      routing_keys.map(&:to_sym).each do |routing_key|
+        queue_name = RJ.config.queue_name(routing_key)
+        AMQP.channel.queue(queue_name, RJ.config[:queues][routing_key]) do |queue, declare_ok|
+          queue.status do |messages, consumers|
+            queue.purge do |ret|
+              RJ.logger.error "Cannot purge queue #{queue_name}." unless ret.is_a?(AMQ::Protocol::Queue::PurgeOk)
+              messages_count += ret.message_count
+              count -= 1
+              if count == 0
+                yield(messages_count) if block_given?
+              end
             end
           end
         end
       end
+
+      messages_count
     end
   end
 end

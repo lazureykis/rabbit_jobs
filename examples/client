@@ -13,9 +13,7 @@ end
 
 RJ.configure { |c|
   c.queue "failover_test"
-  c.server "amqp://dev.lan/"
   c.server "amqp://localhost/"
-
 }
 
 RJ.logger = Logger.new($stdout)
@@ -35,16 +33,16 @@ RJ.run {
 }
 
 
-# 1000.times {
-#   RJ.run do
-#     count = 10000
-#     published = 0
-#     count.times {
-#       RJ.publish_to(:default, MyCurrentJob) {
-#         published += 1
-#         RJ.stop if published >= count
-#       }
-#     }
-#   end
-#   puts 'returned from em'
-# }
+1000.times {
+  RJ.run do
+    count = 10000
+    published = 0
+    count.times {
+      RJ.publish_to(:default, MyCurrentJob) {
+        published += 1
+        RJ.stop if published >= count
+      }
+    }
+  end
+  puts 'returned from em'
+}
