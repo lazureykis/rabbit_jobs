@@ -97,14 +97,16 @@ module RabbitJobs
     if RJ.running?
       RJ::Publisher.purge_queue(*routing_keys, &block)
     else
+      messages_count = 0
       RJ.run {
         RJ::Publisher.purge_queue(*routing_keys) { |count|
+          messages_count = count
           RJ.stop {
-            yield if block_given?
-            return count
+            yield(count) if block_given?
           }
         }
       }
+      messages_count
     end
   end
 

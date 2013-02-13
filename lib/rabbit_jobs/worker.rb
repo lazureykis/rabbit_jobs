@@ -53,14 +53,14 @@ module RabbitJobs
     end
 
     def queues
-      @queues || ['default']
+      @queues || [:default]
     end
 
     # Subscribes to queue and working on jobs
     def work(time = 0)
       return false unless startup
 
-      $0 = self.process_name || "rj_worker (#{queues.join(',')})"
+      $0 = self.process_name || "rj_worker (#{queues.join(', ')})"
 
       processed_count = 0
 
@@ -79,9 +79,11 @@ module RabbitJobs
           }
 
           AmqpHelper.prepare_channel
+          AMQP.channel.prefetch(1)
 
           queues.each do |routing_key|
-            AMQP.channel.prefetch(1)
+            routing_key = routing_key.to_sym
+
             AMQP.channel.queue(queue_name(routing_key), queue_params(routing_key)) { |queue, declare_ok|
               explicit_ack = !!queue_params(routing_key)[:ack]
 

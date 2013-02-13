@@ -9,19 +9,20 @@ module RabbitJobs
     RECOVERY_TIMEOUT = 3
     HOSTS_DEAD = []
     HOSTS_FAILED = {}
+    AUTO_RECOVERY_ENABLED = true
 
     class << self
 
       def prepare_connection
         if !AMQP.connection || AMQP.connection.closed?
           RJ.logger.info("Connecting to #{RJ.config.servers.first.to_s}...")
-          AMQP.connection = AMQP.connect(RJ.config.servers.first, auto_recovery: true)
-          init_auto_recovery
+          AMQP.connection = AMQP.connect(RJ.config.servers.first, auto_recovery: AUTO_RECOVERY_ENABLED)
+          init_auto_recovery if AUTO_RECOVERY_ENABLED
         end
       end
 
       def prepare_channel
-        AMQP.channel ||= AMQP::Channel.new(AMQP.connection, auto_recovery: true)
+        AMQP.channel ||= AMQP::Channel.new(AMQP.connection, auto_recovery: AUTO_RECOVERY_ENABLED)
       end
 
       def init_auto_recovery
@@ -39,6 +40,17 @@ module RabbitJobs
             RJ.logger.info "Connected."
           end
 
+          AMQP.connection.on_tcp_connection_loss do |conn, opts|
+            sleep 2
+            restore_from_connection_failure(opts)
+          end
+
+          AMQP.connection.on_tcp_connection_failure do |opts|
+            sleep 2
+            restore_from_connection_failure(opts)
+          end
+
+
           # AMQP.connection.before_recovery do |conn, opts|
           #   RJ.logger.info "before_recovery"
           # end
@@ -48,19 +60,9 @@ module RabbitJobs
           #   # restore_from_connection_failure(opts)
           # end
 
-          AMQP.connection.on_tcp_connection_loss do |conn, opts|
-            sleep 2
-            restore_from_connection_failure(opts)
-          end
-
           # AMQP.connection.on_connection_interruption do |conn|
           #   # restore_from_connection_failure(opts)
           # end
-
-          AMQP.connection.on_tcp_connection_failure do |opts|
-            sleep 2
-            restore_from_connection_failure(opts)
-          end
         end
       end
 
@@ -99,13 +101,20 @@ module RabbitJobs
       def url_from_opts(opts = {})
         return "" unless opts
         return "" if opts.empty?
+
+        scheme = opts[:scheme] || "amqp"
+        vhost = opts[:vhost] || "/"
+        vhost = "/#{vhost}" unless vhost[0] == '/'
+        use_default_port = (scheme == 'amqp' && opts[:port] == 5672) || (scheme == 'amqps' && opts[:port] == 5673)
+        use_default_credentials = opts[:user] == 'guest' && opts[:pass] == 'guest'
+
         s = ""
-        s << (opts[:scheme] || "amqp")
+        s << scheme
         s << "://"
-        s << "#{opts[:user]}@" if opts[:user] && !opts[:user].empty? && opts[:user] != 'guest'
+        s << "#{opts[:user]}:#{opts[:pass]}@" unless use_default_credentials
         s << opts[:host]
-        s << ":#{opts[:port]}" unless (opts[:scheme] == 'amqp' && opts[:port] == 5672) || (opts[:scheme] == 'amqps' && opts[:port] == 5673)
-        s << opts[:vhost] if opts[:vhost] && !opts[:vhost].empty? && opts[:vhost] != "/"
+        s << ":#{opts[:port]}" unless use_default_port
+        s << vhost
         s
       end
     end
