@@ -32,10 +32,8 @@ namespace :rj do
     task :start => [:environment, :load_config] do
       make_dirs
       RJ.config.workers.each do |worker_name, worker_props|
-        puts worker_props.inspect
         (1..worker_props[:instances].to_i).each do |worker_num|
           unless @do_only.count > 0 && !@do_only.include?("#{worker_name}-#{worker_num}")
-            $stdout.puts 'initializing worker'
             queues = (worker_props[:queue] || worker_props[:queues] || "").split(' ')
 
             worker = RJ::Worker.new(*queues)
