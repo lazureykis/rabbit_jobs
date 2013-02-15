@@ -38,13 +38,13 @@ module RabbitJobs
           RJ.logger.info "Connected."
         end
 
-        connection.on_tcp_connection_loss do |conn, opts|
-          sleep 2
-          restore_from_connection_failure(conn, opts)
-        end
+        # connection.on_tcp_connection_loss do |conn, opts|
+        #   sleep 1
+        #   restore_from_connection_failure(conn, opts) unless conn.closed?
+        # end
 
         connection.on_tcp_connection_failure do |opts|
-          sleep 2
+          sleep 1
           restore_from_connection_failure(connection, opts)
         end
 
