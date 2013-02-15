@@ -4,6 +4,8 @@ require 'json'
 require 'amqp'
 require 'eventmachine'
 require 'uri'
+require 'active_support'
+require 'active_support/core_ext/module'
 
 module RabbitJobs
   module Publisher
