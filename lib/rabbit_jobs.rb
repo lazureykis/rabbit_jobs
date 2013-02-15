@@ -24,7 +24,6 @@ module RabbitJobs
     raise if EM.reactor_running?
 
     EM.run {
-      AmqpHelper.prepare_connection
       yield
     }
   end

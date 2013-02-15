@@ -9,6 +9,17 @@ module RabbitJobs
   module Publisher
     extend self
 
+    mattr_accessor :_connection
+    mattr_accessor :_channel
+
+    def amqp_connection
+      self._connection ||= AmqpHelper.prepare_connection(self._connection)
+    end
+
+    def amqp_channel
+      self._channel ||= AmqpHelper.create_channel(self._connection)
+    end
+
     def publish(klass, *params, &block)
       publish_to(RJ.config.default_queue, klass, *params, &block)
     end
@@ -31,16 +42,16 @@ module RabbitJobs
       raise ArgumentError.new("Need to pass exchange name") if ex.size > 0 && ex[:name].to_s.empty?
 
       begin
-        AmqpHelper.prepare_channel
+        amqp_connection
 
         if ex.size > 0
-          AMQP::Exchange.new(AMQP.channel, :direct, ex[:name].to_s, Configuration::DEFAULT_EXCHANGE_PARAMS.merge(ex[:params] || {})) do |exchange|
+          AMQP::Exchange.new(self.amqp_channel, :direct, ex[:name].to_s, Configuration::DEFAULT_EXCHANGE_PARAMS.merge(ex[:params] || {})) do |exchange|
             exchange.publish(payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({key: routing_key.to_sym})) do
               yield if block_given?
             end
           end
         else
-          AMQP.channel.default_exchange.publish(payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({key: routing_key.to_sym})) do
+          self.amqp_channel.default_exchange.publish(payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({key: routing_key.to_sym})) do
             yield if block_given?
           end
         end
@@ -59,11 +70,9 @@ module RabbitJobs
       messages_count = 0
       count = routing_keys.count
 
-      AmqpHelper.prepare_channel
-
       routing_keys.map(&:to_sym).each do |routing_key|
         queue_name = RJ.config.queue_name(routing_key)
-        AMQP.channel.queue(queue_name, RJ.config[:queues][routing_key]) do |queue, declare_ok|
+        self.amqp_channel.queue(queue_name, RJ.config[:queues][routing_key]) do |queue, declare_ok|
           queue.status do |messages, consumers|
             queue.purge do |ret|
               RJ.logger.error "Cannot purge queue #{queue_name}." unless ret.is_a?(AMQ::Protocol::Queue::PurgeOk)

@@ -4,6 +4,16 @@ module RabbitJobs
   class Worker
     attr_accessor :pidfile, :background, :process_name, :worker_pid
 
+    attr_accessor :_connection, :_channel
+
+    def amqp_connection
+      self._connection ||= AmqpHelper.prepare_connection(self._connection)
+    end
+
+    def amqp_channel
+      self._channel ||= AmqpHelper.create_channel(self._connection)
+    end
+
     def process_message(metadata, payload)
       job = RJ::Job.parse(payload)
 
@@ -73,18 +83,16 @@ module RabbitJobs
               RJ.logger.info "Stopped."
 
               File.delete(self.pidfile) if self.pidfile && File.exists?(self.pidfile)
-              # RJ.logger.close
-              # exit!
             end
           }
 
-          AmqpHelper.prepare_channel
-          AMQP.channel.prefetch(1)
+          amqp_connection
+          amqp_channel.prefetch(1)
 
           queues.each do |routing_key|
             routing_key = routing_key.to_sym
 
-            AMQP.channel.queue(queue_name(routing_key), queue_params(routing_key)) { |queue, declare_ok|
+            amqp_channel.queue(queue_name(routing_key), queue_params(routing_key)) { |queue, declare_ok|
               explicit_ack = !!queue_params(routing_key)[:ack]
 
               RJ.logger.info "Subscribing to #{queue_name(routing_key)}"
@@ -93,6 +101,8 @@ module RabbitJobs
                   processed_count += 1 if process_message(metadata, payload)
                 rescue
                   RJ.logger.warn "process_message failed. payload: #{payload.inspect}"
+                  RJ.logger.warn $!.inspect
+                  $!.backtrace.each {|l| RJ.logger.warn l}
                 end
 
                 metadata.ack if explicit_ack
