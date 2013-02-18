@@ -14,7 +14,7 @@ module RabbitJobs
     class << self
 
       def prepare_connection(conn)
-        if !conn
+        if !conn || conn.closed?
           RJ.logger.info("Connecting to #{RJ.config.servers.first.to_s}...")
           conn = AMQP.connect(RJ.config.servers.first, auto_recovery: AUTO_RECOVERY_ENABLED)
           init_auto_recovery(conn) if AUTO_RECOVERY_ENABLED

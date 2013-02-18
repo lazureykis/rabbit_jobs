@@ -14,6 +14,10 @@ module RabbitJobs
       self._channel ||= AmqpHelper.create_channel(self._connection)
     end
 
+    def cleanup
+      self._connection = self._channel = nil
+    end
+
     def process_message(metadata, payload)
       job = RJ::Job.parse(payload)
 

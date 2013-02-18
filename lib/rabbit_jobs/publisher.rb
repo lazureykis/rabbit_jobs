@@ -22,6 +22,10 @@ module RabbitJobs
       self._channel ||= AmqpHelper.create_channel(self._connection)
     end
 
+    def cleanup
+      self._connection = self._channel = nil
+    end
+
     def publish(klass, *params, &block)
       publish_to(RJ.config.default_queue, klass, *params, &block)
     end

@@ -31,6 +31,8 @@ module RabbitJobs
   alias_method :run, :start
 
   def stop
+    RJ::Publisher.cleanup
+
     if AMQP.connection
       AMQP.connection.disconnect {
         AMQP.connection = nil
