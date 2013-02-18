@@ -91,8 +91,6 @@ module RabbitJobs
 
         processed_count = 0
         RJ.run do
-          AmqpHelper.prepare_channel
-
           load_schedule!
 
           check_shutdown = Proc.new {
