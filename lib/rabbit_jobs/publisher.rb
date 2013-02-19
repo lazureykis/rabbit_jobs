@@ -19,6 +19,7 @@ module RabbitJobs
     end
 
     def amqp_channel
+      self._connection ||= AmqpHelper.prepare_connection(self._connection)
       self._channel ||= AmqpHelper.create_channel(self._connection)
     end
 
