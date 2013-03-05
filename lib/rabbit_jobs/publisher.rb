@@ -52,7 +52,7 @@ module RabbitJobs
         amqp_connection
 
         if ex.size > 0
-          AMQP::Exchange.new(self.amqp_channel, :direct, ex[:name].to_s, Configuration::DEFAULT_EXCHANGE_PARAMS.merge(ex[:params] || {})) do |exchange|
+          AMQP::Exchange.new(self.amqp_channel, ex[:type] || :direct, ex[:name].to_s, Configuration::DEFAULT_EXCHANGE_PARAMS.merge(ex[:params] || {})) do |exchange|
             exchange.publish(payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({key: routing_key.to_sym})) do
               yield if block_given?
             end
