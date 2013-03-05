@@ -174,7 +174,7 @@ module RabbitJobs
 
     def queue_name(routing_key)
       routing_key = routing_key.to_sym
-      @data[:queues][routing_key][:ignore_prefix] ? routing_key : [@data[:prefix], routing_key].join('#')
+      @data[:queues][routing_key][:ignore_prefix] ? routing_key : [@data[:prefix], routing_key].compact.join('#')
     end
 
     def load_file(filename)
