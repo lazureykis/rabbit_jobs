@@ -134,6 +134,21 @@ module RabbitJobs
       callback.call
     }
   end
+
+  def before_process_message(&block)
+    raise unless block_given?
+    @before_process_message_callbacks ||= []
+    @before_process_message_callbacks << block
+  end
+
+  def run_before_process_message_callbacks
+    @before_process_message_callbacks ||= []
+    @before_process_message_callbacks.each { |callback|
+      return false unless callback.call
+    }
+    return true
+  end
+
 end
 
 RJ = RabbitJobs

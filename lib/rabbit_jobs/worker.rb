@@ -101,15 +101,20 @@ module RabbitJobs
 
               RJ.logger.info "Subscribing to #{queue_name(routing_key)}"
               queue.subscribe(ack: explicit_ack) do |metadata, payload|
-                begin
-                  processed_count += 1 if process_message(metadata, payload)
-                rescue
-                  RJ.logger.warn "process_message failed. payload: #{payload.inspect}"
-                  RJ.logger.warn $!.inspect
-                  $!.backtrace.each {|l| RJ.logger.warn l}
+                if RJ.run_before_process_message_callbacks
+                  begin
+                    processed_count += 1 if process_message(metadata, payload)
+                  rescue
+                    RJ.logger.warn "process_message failed. payload: #{payload.inspect}"
+                    RJ.logger.warn $!.inspect
+                    $!.backtrace.each {|l| RJ.logger.warn l}
+                  end
+                  metadata.ack if explicit_ack
+                else
+                  RJ.logger.warn "before_process_message hook failed, requeuing payload: #{payload.inspect}"
+                  metadata.reject(requeue: true) if explicit_ack
                 end
 
-                metadata.ack if explicit_ack
                 check_shutdown.call
               end
             }
