@@ -201,10 +201,6 @@ module RabbitJobs
         yaml['queues'].each do |name, params|
           queue name, symbolize_keys!(params) || {}
         end
-
-        yaml['workers'].each do |name, params|
-          worker name, symbolize_keys!(params) || {}
-        end
       end
     end
 
