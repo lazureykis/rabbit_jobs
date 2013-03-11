@@ -1,8 +1,7 @@
 # -*- encoding : utf-8 -*-
 
 require 'json'
-require 'amqp'
-require 'eventmachine'
+require 'bunny'
 require 'uri'
 require 'active_support'
 require 'active_support/core_ext/module'
@@ -11,20 +10,14 @@ module RabbitJobs
   module Publisher
     extend self
 
-    mattr_accessor :_connection
-    mattr_accessor :_channel
-
     def amqp_connection
-      self._connection ||= AmqpHelper.prepare_connection(self._connection)
-    end
-
-    def amqp_channel
-      self._connection ||= AmqpHelper.prepare_connection(self._connection)
-      self._channel ||= AmqpHelper.create_channel(self._connection)
+      Thread.current[:rj_publisher_connection] ||= AmqpHelper.prepare_connection
     end
 
     def cleanup
-      self._connection = self._channel = nil
+      conn = Thread.current[:rj_publisher_connection]
+      conn.close if conn && conn.status != :not_connected
+      Thread.current[:rj_publisher_connection] = nil
     end
 
     def publish_to(routing_key, klass, *params, &block)
@@ -45,25 +38,21 @@ module RabbitJobs
       raise ArgumentError.new("Need to pass exchange name") if ex.size > 0 && ex[:name].to_s.empty?
 
       begin
-        amqp_connection
-
-        if ex.size > 0
-          AMQP::Exchange.new(self.amqp_channel, ex[:type] || :direct, ex[:name].to_s, Configuration::DEFAULT_EXCHANGE_PARAMS.merge(ex[:params] || {})) do |exchange|
-            exchange.publish(payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({key: routing_key.to_sym})) do
-              yield if block_given?
-            end
-          end
+        exchange = if ex.size > 0
+          exchange_opts = Configuration::DEFAULT_EXCHANGE_PARAMS.merge(ex[:params] || {}).merge({type: (ex[:type] || :direct)})
+          amqp_connection.channel.exchange(ex[:name].to_s, exchange_opts)
         else
-          self.amqp_channel.default_exchange.publish(payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({key: routing_key.to_sym})) do
-            yield if block_given?
-          end
+          amqp_connection.channel.default_exchange
         end
+
+        exchange.publish(payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({key: routing_key.to_sym}))
       rescue
         RJ.logger.warn $!.message
         RJ.logger.warn $!.backtrace.join("\n")
         raise $!
       end
 
+      yield if block_given?
       true
     end
 
@@ -75,19 +64,12 @@ module RabbitJobs
 
       routing_keys.map(&:to_sym).each do |routing_key|
         queue_name = RJ.config.queue_name(routing_key)
-        self.amqp_channel.queue(queue_name, RJ.config[:queues][routing_key]) do |queue, declare_ok|
-          queue.status do |messages, consumers|
-            queue.purge do |ret|
-              RJ.logger.error "Cannot purge queue #{queue_name}." unless ret.is_a?(AMQ::Protocol::Queue::PurgeOk)
-              messages_count += ret.message_count
-              count -= 1
-              if count == 0
-                yield(messages_count) if block_given?
-              end
-            end
-          end
-        end
+        queue = amqp_connection.queue(queue_name, RJ.config[:queues][routing_key])
+        messages_count += queue.status[:message_count]
+        queue.delete
       end
+
+      yield(messages_count) if block_given?
 
       messages_count
     end

@@ -42,19 +42,11 @@ describe RabbitJobs::Publisher do
     count = 1000
     published = 0
     time = Benchmark.measure {
-      RJ.run {
-        count.times {
-          RJ.publish_to(:rspec_queue, TestJob) {
-            published += 1
-            if published == count
-              RJ.purge_queue(:rspec_queue, :rspec_queue2, :rspec_queue3) { |removed|
-                removed.should == 1000
-                RJ.stop
-              }
-            end
-          }
-        }
+      count.times {
+        RJ.publish_to(:rspec_queue, TestJob)
       }
+      removed = RJ.purge_queue(:rspec_queue, :rspec_queue2, :rspec_queue3)
+      removed.should == 1000
     }
     puts time
   end

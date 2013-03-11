@@ -8,7 +8,7 @@ require File.expand_path('../../lib/rabbit_jobs', __FILE__)
 class MyCurrentJob
   include RJ::Job
   def self.perform(count = 0)
-    # puts count
+    puts count
     # RJ.publish_to(:default, MyCurrentJob, count - 1) if count > 0
   end
 end
@@ -18,9 +18,6 @@ RJ.configure { |c|
   c.server "amqp://localhost/"
   c.server "amqp://dev.lan/"
 }
-
-# AMQ::Client.logging = false
-AMQP.logging = false
 
 RJ.logger = Logger.new($stdout)
 

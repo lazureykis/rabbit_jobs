@@ -1,5 +1,5 @@
 # -*- encoding : utf-8 -*-
-require 'amqp'
+require 'bunny'
 require 'uri'
 
 module RabbitJobs
@@ -13,17 +13,10 @@ module RabbitJobs
 
     class << self
 
-      def prepare_connection(conn)
-        if !conn || conn.closed?
-          RJ.logger.info("Connecting to #{RJ.config.servers.first.to_s}...")
-          conn = AMQP.connect(RJ.config.servers.first, auto_recovery: AUTO_RECOVERY_ENABLED)
-          init_auto_recovery(conn) if AUTO_RECOVERY_ENABLED
-        end
+      def prepare_connection
+        conn = Bunny.new(RJ.config.servers.first)
+        conn.start unless conn.connected? || conn.connecting?
         conn
-      end
-
-      def create_channel(connection)
-        AMQP::Channel.new(connection, auto_recovery: AUTO_RECOVERY_ENABLED)
       end
 
       def init_auto_recovery(connection)

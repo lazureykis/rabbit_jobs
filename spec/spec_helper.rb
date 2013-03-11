@@ -5,9 +5,9 @@ SimpleCov.start do
 end
 
 require 'rr'
+require 'timecop'
 
 require 'rabbit_jobs'
-
 require 'fixtures/jobs'
 
 RSpec.configure do |config|

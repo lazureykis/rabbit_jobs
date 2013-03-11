@@ -70,7 +70,6 @@ module RabbitJobs
     end
 
     def rufus_scheduler
-      raise "Cannot start without eventmachine running." unless EM.reactor_running?
       @rufus_scheduler ||= Rufus::Scheduler.start_new
     end
 
@@ -89,30 +88,27 @@ module RabbitJobs
 
         $0 = self.process_name || "rj_scheduler"
 
+        RJ.logger.info "Started."
+
         processed_count = 0
-        RJ.run do
-          load_schedule!
+        load_schedule!
 
-          check_shutdown = Proc.new {
-            if @shutdown
-              RJ.stop
-              RJ.logger.info "Stopped."
-
-              File.delete(self.pidfile) if self.pidfile
-            end
-          }
-
+        while true
+          sleep 1
           if time > 0
-            EM.add_timer(time) do
-              self.shutdown
+            time -= 1
+            if time == 0
+              shutdown
             end
           end
 
-          EM.add_periodic_timer(1) do
-            check_shutdown.call
-          end
+          if @shutdown
+            RJ.logger.info "Processed jobs: #{processed_count}."
+            RJ.logger.info "Stopped."
 
-          RJ.logger.info "Started."
+            File.delete(self.pidfile) if self.pidfile && File.exists?(self.pidfile)
+            return true
+          end
         end
       rescue => e
         error = $!

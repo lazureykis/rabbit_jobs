@@ -4,18 +4,14 @@ module RabbitJobs
   class Worker
     attr_accessor :pidfile, :background, :process_name, :worker_pid
 
-    attr_accessor :_connection, :_channel
-
     def amqp_connection
-      self._connection ||= AmqpHelper.prepare_connection(self._connection)
+      Thread.current[:rj_worker_connection] ||= AmqpHelper.prepare_connection
     end
 
-    def amqp_channel
-      self._channel ||= AmqpHelper.create_channel(self._connection)
-    end
-
-    def cleanup
-      self._connection = self._channel = nil
+    def self.cleanup
+      conn = Thread.current[:rj_worker_connection]
+      conn.close if conn && conn.status != :not_connected
+      Thread.current[:rj_worker_connection] = nil
     end
 
     def process_message(metadata, payload)
@@ -71,7 +67,7 @@ module RabbitJobs
     end
 
     # Subscribes to queue and working on jobs
-    def work(time = 0)
+    def work(time = -1)
       return false unless startup
 
       $0 = self.process_name || "rj_worker (#{queues.join(', ')})"
@@ -79,59 +75,55 @@ module RabbitJobs
       processed_count = 0
 
       begin
-        RJ.run do
-          check_shutdown = Proc.new {
-            if @shutdown
-              RJ.stop
-              RJ.logger.info "Processed jobs: #{processed_count}."
-              RJ.logger.info "Stopped."
+        # amqp_channel.prefetch(1)
 
-              File.delete(self.pidfile) if self.pidfile && File.exists?(self.pidfile)
-            end
-          }
+        amqp_channel = amqp_connection.create_channel
 
-          amqp_connection
-          amqp_channel.prefetch(1)
+        queues.each do |routing_key|
+          RJ.logger.info "Subscribing to #{queue_name(routing_key)}"
 
-          queues.each do |routing_key|
-            routing_key = routing_key.to_sym
+          routing_key = routing_key.to_sym
+          queue = amqp_channel.queue(queue_name(routing_key), queue_params(routing_key))# { |queue, declare_ok|
+          explicit_ack = !!queue_params(routing_key)[:ack]
 
-            amqp_channel.queue(queue_name(routing_key), queue_params(routing_key)) { |queue, declare_ok|
-              explicit_ack = !!queue_params(routing_key)[:ack]
-
-              RJ.logger.info "Subscribing to #{queue_name(routing_key)}"
-              queue.subscribe(ack: explicit_ack) do |metadata, payload|
-                if RJ.run_before_process_message_callbacks
-                  begin
-                    processed_count += 1 if process_message(metadata, payload)
-                  rescue
-                    RJ.logger.warn "process_message failed. payload: #{payload.inspect}"
-                    RJ.logger.warn $!.inspect
-                    $!.backtrace.each {|l| RJ.logger.warn l}
-                  end
-                  metadata.ack if explicit_ack
-                else
-                  RJ.logger.warn "before_process_message hook failed, requeuing payload: #{payload.inspect}"
-                  metadata.reject(requeue: true) if explicit_ack
-                end
-
-                check_shutdown.call
+          queue.subscribe(ack: explicit_ack) do |delivery_info, properties, payload|
+            if RJ.run_before_process_message_callbacks
+              begin
+                processed_count += 1 if process_message(properties, payload)
+              rescue
+                RJ.logger.warn "process_message failed. payload: #{payload.inspect}"
+                RJ.logger.warn $!.inspect
+                $!.backtrace.each {|l| RJ.logger.warn l}
               end
-            }
-          end
-
-          if time > 0
-            # for debugging
-            EM.add_timer(time) do
-              self.shutdown
+              amqp_channel.ack(delivery_info.delivery_tag, false) if explicit_ack
+            else
+              RJ.logger.warn "before_process_message hook failed, requeuing payload: #{payload.inspect}"
+              amqp_channel.nack(delivery_info.delivery_tag, true) if explicit_ack
             end
-          end
 
-          EM.add_periodic_timer(1) do
             check_shutdown.call
           end
+          #}
+        end
 
-          RJ.logger.info "Started."
+        RJ.logger.info "Started."
+
+        while true
+          sleep 1
+          if time > 0
+            time -= 1
+            if time == 0
+              shutdown
+            end
+          end
+
+          if @shutdown
+            RJ.logger.info "Processed jobs: #{processed_count}."
+            RJ.logger.info "Stopped."
+
+            File.delete(self.pidfile) if self.pidfile && File.exists?(self.pidfile)
+            return true
+          end
         end
       rescue
         error = $!

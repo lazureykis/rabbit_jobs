@@ -18,31 +18,4 @@ RJ.configure { |c|
 
 RJ.logger = Logger.new($stdout)
 
-RJ.run {
-  RJ.publish(MyCurrentJob) {
-    puts 'published first message'
-    RJ.stop
-  }
-
-  # EM.add_timer(5) {
-  #   RJ.publish(MyCurrentJob) {
-  #     puts 'published second message'
-  #     RJ.stop
-  #   }
-  # }
-}
-
-
-1000.times {
-  RJ.run do
-    count = 10000
-    published = 0
-    count.times {
-      RJ.publish_to(:default, MyCurrentJob) {
-        published += 1
-        RJ.stop if published >= count
-      }
-    }
-  end
-  puts 'returned from em'
-}
+RJ.publish_to(:failover_test, MyCurrentJob)
