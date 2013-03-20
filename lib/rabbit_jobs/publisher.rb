@@ -27,10 +27,6 @@ module RabbitJobs
       self._connection = self._channel = nil
     end
 
-    def publish(klass, *params, &block)
-      publish_to(RJ.config.default_queue, klass, *params, &block)
-    end
-
     def publish_to(routing_key, klass, *params, &block)
       raise ArgumentError.new("klass=#{klass.inspect}") unless klass && (klass.is_a?(Class) || klass.is_a?(String))
       raise ArgumentError.new("routing_key=#{routing_key}") unless routing_key && (routing_key.is_a?(Symbol) || routing_key.is_a?(String)) && !!RJ.config[:queues][routing_key.to_sym]

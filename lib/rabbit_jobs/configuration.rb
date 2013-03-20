@@ -159,19 +159,6 @@ module RabbitJobs
       @data[:queues].keys
     end
 
-    def init_default_queue
-      queue('default', DEFAULT_QUEUE_PARAMS) if @data[:queues].empty?
-    end
-
-    def worker_queues
-      @data[:workers].values.map{|w| w[:queues].to_s.split(' ')}.flatten.uniq.sort
-    end
-
-    def default_queue
-      queue('default', DEFAULT_QUEUE_PARAMS) if @data[:queues].empty?
-      worker_queues.first
-    end
-
     def queue_name(routing_key)
       routing_key = routing_key.to_sym
       @data[:queues][routing_key][:ignore_prefix] ? routing_key : [@data[:prefix], routing_key].compact.join('#')

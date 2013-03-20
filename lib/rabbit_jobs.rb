@@ -52,20 +52,6 @@ module RabbitJobs
     EM.reactor_running?
   end
 
-  def publish(klass, *params, &block)
-    if RJ.running?
-      RJ::Publisher.publish(klass, *params, &block)
-    else
-      RJ.run {
-        RJ::Publisher.publish(klass, *params) {
-          RJ.stop {
-            yield if block_given?
-          }
-        }
-      }
-    end
-  end
-
   def publish_to(routing_key, klass, *params, &block)
     if RJ.running?
       RJ::Publisher.publish_to(routing_key, klass, *params, &block)
