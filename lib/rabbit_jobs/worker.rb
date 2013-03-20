@@ -79,11 +79,13 @@ module RabbitJobs
 
         amqp_channel = amqp_connection.create_channel
 
+        queue_objects = []
         queues.each do |routing_key|
           RJ.logger.info "Subscribing to #{queue_name(routing_key)}"
 
           routing_key = routing_key.to_sym
-          queue = amqp_channel.queue(queue_name(routing_key), queue_params(routing_key))# { |queue, declare_ok|
+          queue = amqp_channel.queue(queue_name(routing_key), queue_params(routing_key))
+          queue_objects << queue
           explicit_ack = !!queue_params(routing_key)[:ack]
 
           queue.subscribe(ack: explicit_ack) do |delivery_info, properties, payload|
@@ -101,9 +103,10 @@ module RabbitJobs
               amqp_channel.nack(delivery_info.delivery_tag, true) if explicit_ack
             end
 
-            check_shutdown.call
+            if @shutdown
+              queue_objects.each {|q| q.unsubscribe}
+            end
           end
-          #}
         end
 
         RJ.logger.info "Started."
