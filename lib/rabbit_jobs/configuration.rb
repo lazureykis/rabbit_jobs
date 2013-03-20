@@ -64,7 +64,7 @@ module RabbitJobs
       @data = {
         error_log: true,
         workers: {},
-        servers: [],
+        server: 'amqp://localhost/',
         prefix: 'rabbit_jobs',
         queues: {}
       }
@@ -98,20 +98,9 @@ module RabbitJobs
       @data[:error_log] = false
     end
 
-    def servers(*value)
-      unless value.empty?
-        @data[:servers] = value.map(&:to_s).map(&:strip).keep_if{|url|!url.empty?}.map {|url|
-          normalize_url(url)
-        }
-      end
-      @data[:servers]
-    end
-
     def server(value = nil)
-      raise unless value && !value.to_s.empty?
-      value = normalize_url(value.to_s.strip)
-      @data[:servers] ||= []
-      @data[:servers] << value unless @data[:servers].include?(value)
+      @data[:server] = value.to_s.strip if value && value.length > 0
+      @data[:server]
     end
 
     def prefix(value = nil)
@@ -179,24 +168,13 @@ module RabbitJobs
         convert_yaml_config(yaml[Rails.env.to_s])
       else
         @data = {prefix: nil, queues: {}}
-        %w(prefix mail_errors_to mail_errors_from).each do |m|
+        %w(server prefix mail_errors_to mail_errors_from).each do |m|
           self.send(m, yaml[m])
-        end
-        yaml['servers'].split(",").each do |value|
-          server normalize_url(value)
         end
         yaml['queues'].each do |name, params|
           queue name, symbolize_keys!(params) || {}
         end
       end
-    end
-
-    private
-
-    def normalize_url(url_string)
-      uri = URI.parse(url_string)
-      uri.path = "" if uri.path.to_s == "/"
-      uri.to_s
     end
   end
 end

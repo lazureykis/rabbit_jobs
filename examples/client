@@ -13,9 +13,13 @@ end
 
 RJ.configure { |c|
   c.queue "failover_test"
-  c.server "amqp://localhost/"
+  c.server "amqp://localhost/bunny"
 }
 
-RJ.logger = Logger.new($stdout)
-
-RJ.publish_to(:failover_test, MyCurrentJob)
+i = 0
+loop do
+  puts "publishing job #{i}"
+  RJ.publish_to(:failover_test, MyCurrentJob, i)
+  i += 1
+  sleep 1
+end

@@ -15,11 +15,8 @@ end
 
 RJ.configure { |c|
   c.queue "failover_test"
-  c.server "amqp://localhost/"
-  c.server "amqp://dev.lan/"
+  c.server "amqp://localhost/bunny"
 }
-
-RJ.logger = Logger.new($stdout)
 
 worker = RJ::Worker.new
 worker.work
