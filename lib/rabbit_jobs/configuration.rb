@@ -63,7 +63,6 @@ module RabbitJobs
     def initialize
       @data = {
         error_log: true,
-        workers: {},
         server: 'amqp://localhost/',
         prefix: 'rabbit_jobs',
         queues: {}
@@ -122,25 +121,6 @@ module RabbitJobs
         @data[:queues][name].merge!(params)
       else
         @data[:queues][name] = DEFAULT_QUEUE_PARAMS.merge(params)
-      end
-    end
-
-    def workers
-      @data[:workers] ||= {}
-    end
-
-    def worker(name, params = {})
-      raise ArgumentError.new("name is #{name.inspect}") unless name && name.is_a?(String) && name != ""
-      raise ArgumentError.new("params is #{params.inspect}") unless params && params.is_a?(Hash)
-      raise ArgumentError.new("params should have :instances and :queues keys.") unless params[:instances] && params[:queues]
-
-      name = name.downcase.to_sym
-
-      @data[:workers] ||= {}
-      if @data[:workers][name]
-        @data[:workers][name].merge!(params)
-      else
-        @data[:workers][name] = params
       end
     end
 
