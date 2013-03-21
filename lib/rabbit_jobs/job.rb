@@ -26,7 +26,7 @@ module RabbitJobs::Job
       rescue
         RJ.logger.warn $!.message
         RJ.logger.warn(self.to_ruby_string)
-        RJ.logger.warn RJ::Util.cleanup_backtrace($!.backtrace).join("\n")
+        RJ.logger.warn _cleanup_backtrace($!.backtrace).join("\n")
         run_on_error_hooks($!)
         RabbitJobs::ErrorMailer.report_error(self, $!)
       end
@@ -122,7 +122,7 @@ module RabbitJobs::Job
     rescue
       RJ.logger.warn "Cannot initialize job."
       RJ.logger.warn $!.message
-      RJ.logger.warn RJ::Util.cleanup_backtrace($!.backtrace).join("\n")
+      RJ.logger.warn _cleanup_backtrace($!.backtrace).join("\n")
       RJ.logger.warn "Data received: #{payload.inspect}"
       :error
     end

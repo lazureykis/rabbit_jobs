@@ -2,6 +2,15 @@
 
 module RabbitJobs
   module Helpers
+    def _cleanup_backtrace(trace_lines)
+      if defined?(Rails) && Rails.respond_to?(:root)
+        rails_root_path = Rails.root.to_s
+        trace_lines.dup.keep_if { |l| l[rails_root_path] }
+      else
+        trace_lines
+      end
+    end
+
     def symbolize_keys!(hash)
       hash.inject({}) do |options, (key, value)|
         options[(key.to_sym rescue key) || key] = value
