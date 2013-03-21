@@ -8,7 +8,7 @@ module RabbitJobs
     class << self
 
       def prepare_connection
-        conn = Bunny.new(RJ.config.server)
+        conn = Bunny.new(RJ.config.server, :heartbeat_interval => 5)
         conn.start unless conn.connected? || conn.connecting?
         conn
       end

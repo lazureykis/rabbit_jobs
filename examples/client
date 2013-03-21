@@ -19,7 +19,13 @@ RJ.configure { |c|
 i = 0
 loop do
   puts "publishing job #{i}"
-  RJ.publish_to(:failover_test, MyCurrentJob, i)
+  begin
+    RJ.publish_to(:failover_test, MyCurrentJob, i)
+  rescue Exception => e
+    RJ::Publisher.amqp_connection.stop
+    puts e.message
+    puts e.backtrace.join("\r\n")
+  end
   i += 1
   sleep 1
 end

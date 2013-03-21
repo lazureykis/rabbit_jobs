@@ -23,13 +23,12 @@ module RabbitJobs
     RJ::Publisher.publish_to(routing_key, klass, *params)
   end
 
-  def direct_publish_to(routing_key, payload, ex = {}, &block)
-    RJ::Publisher.direct_publish_to(routing_key, payload, ex, &block)
-    yield if block_given?
+  def direct_publish_to(routing_key, payload, ex = {})
+    RJ::Publisher.direct_publish_to(routing_key, payload, ex)
   end
 
-  def purge_queue(*routing_keys, &block)
-    RJ::Publisher.purge_queue(*routing_keys, &block)
+  def purge_queue(*routing_keys)
+    RJ::Publisher.purge_queue(*routing_keys)
   end
 
   attr_writer :logger
