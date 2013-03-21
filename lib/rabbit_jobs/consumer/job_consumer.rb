@@ -2,7 +2,7 @@
 module RabbitJobs
   module Consumer
     class JobConsumer
-      def process_message(metadata, payload)
+      def process_message(delivery_info, properties, payload)
         job = RJ::Job.parse(payload)
 
         if job.is_a?(Symbol)

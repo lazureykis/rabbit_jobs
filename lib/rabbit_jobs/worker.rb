@@ -77,7 +77,7 @@ module RabbitJobs
           queue.subscribe(ack: explicit_ack) do |delivery_info, properties, payload|
             if RJ.run_before_process_message_callbacks
               begin
-                @consumer.process_message(properties, payload)
+                @consumer.process_message(delivery_info, properties, payload)
                 processed_count += 1
               rescue
                 RJ.logger.warn "process_message failed. payload: #{payload.inspect}"
