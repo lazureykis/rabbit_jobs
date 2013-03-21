@@ -22,17 +22,6 @@ describe RabbitJobs::Worker do
       @worker.instance_variable_get('@shutdown').should_not == true
     end
 
-    it '#startup should write process id to file' do
-      mock(Signal).trap('TERM')
-      mock(Signal).trap('INT')
-
-      filename = 'test_worker.pid'
-      mock(File).open(filename, 'w') {}
-      @worker.pidfile = filename
-      @worker.startup
-      @worker.pidfile.should == filename
-    end
-
     it '#shutdown should set @shutdown to true' do
       @worker.instance_variable_get('@shutdown').should_not == true
       @worker.shutdown

@@ -6,9 +6,6 @@ describe RabbitJobs::Scheduler do
     scheduler = RabbitJobs::Scheduler.new
     scheduler.schedule = YAML.load_file(File.expand_path('../../fixtures/schedule.yml', __FILE__))
 
-    scheduler.pidfile = '/tmp/rj_scheduler.pid'
-    scheduler.background = false
-
     scheduler.work(10) # work for 1 second
 
     RJ.config.queue 'default', RJ::Configuration::DEFAULT_QUEUE_PARAMS

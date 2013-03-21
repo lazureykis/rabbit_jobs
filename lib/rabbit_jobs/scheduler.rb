@@ -7,7 +7,7 @@ require 'yaml'
 module RabbitJobs
   class Scheduler
 
-    attr_accessor :pidfile, :background, :schedule, :process_name
+    attr_accessor :schedule, :process_name
 
     def load_default_schedule
       if defined?(Rails)
@@ -106,7 +106,6 @@ module RabbitJobs
             RJ.logger.info "Processed jobs: #{processed_count}."
             RJ.logger.info "Stopped."
 
-            File.delete(self.pidfile) if self.pidfile && File.exists?(self.pidfile)
             return true
           end
         end
@@ -130,26 +129,9 @@ module RabbitJobs
     end
 
     def startup
-      # prune_dead_workers
-      RabbitJobs::Util.check_pidfile(self.pidfile) if self.pidfile
-
-      if self.background
-        child_pid = fork
-        if child_pid
-          return false
-        else
-          # daemonize child process
-          Process.daemon(true)
-        end
-      end
-
       # Fix buffering so we can `rake rj:work > resque.log` and
       # get output from the child in there.
       $stdout.sync = true
-
-      if self.pidfile
-        File.open(self.pidfile, 'w') { |f| f << Process.pid }
-      end
 
       @shutdown = false
 

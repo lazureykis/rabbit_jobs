@@ -24,9 +24,10 @@ namespace :rj do
 
   desc "Start a Rabbit Jobs worker"
   task :worker => :environment do
-    queues = (ENV['QUEUES'] || ENV['QUEUES'] || "").split(',')
+    queues = (ENV['QUEUES'] || ENV['QUEUE'] || "").split(',')
     make_dirs
     worker = RJ::Worker.new(*queues)
+    worker.consumer = RJ::Consumer.const_get(ENV['CONSUMER'].classify).new if ENV['CONSUMER']
     worker.process_name = "rj_worker #{rails_env} [#{queues.join(',')}]"
     exit(worker.work)
   end
