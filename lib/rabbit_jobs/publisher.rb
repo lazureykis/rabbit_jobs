@@ -30,9 +30,11 @@ module RabbitJobs
     end
 
     def direct_publish_to(routing_key, payload, ex = {})
+      check_connection
       begin
         exchange = get_exchange(ex)
         exchange.publish(payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({key: routing_key.to_sym}))
+        # channel.wait_for_confirms
       rescue
         RJ.logger.warn $!.message
         RJ.logger.warn $!.backtrace.join("\n")
@@ -52,7 +54,7 @@ module RabbitJobs
         queue_name = RJ.config.queue_name(routing_key)
         queue = connection.queue(queue_name, RJ.config[:queues][routing_key])
         messages_count += queue.status[:message_count]
-        queue.delete
+        queue.purge
       end
 
       messages_count
@@ -65,7 +67,12 @@ module RabbitJobs
     end
 
     def connection
-      settings[:connection] ||= AmqpHelper.prepare_connection
+      unless settings[:connection]
+        settings[:connection] = Bunny.new(RJ.config.server, :heartbeat_interval => 5)
+        settings[:connection].start
+        # settings[:channel].confirm_select
+      end
+      settings[:connection]
     end
 
     def exchanges
@@ -78,10 +85,14 @@ module RabbitJobs
 
       if ex.size > 0
         exchange_opts = Configuration::DEFAULT_EXCHANGE_PARAMS.merge(ex[:params] || {}).merge({type: (ex[:type] || :direct)})
-        exchanges[ex[:name]] ||= connection.channel.exchange(ex[:name].to_s, exchange_opts)
+        exchanges[ex[:name]] ||= connection.default_channel.exchange(ex[:name].to_s, exchange_opts)
       else
-        exchanges[ex[:name]] ||= connection.channel.default_exchange
+        exchanges[ex[:name]] ||= connection.default_channel.default_exchange
       end
+    end
+
+    def check_connection
+      raise unless connection.connected?
     end
   end
 end
