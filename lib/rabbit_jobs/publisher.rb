@@ -50,7 +50,7 @@ module RabbitJobs
 
       routing_keys.map(&:to_sym).each do |routing_key|
         queue_name = RJ.config.queue_name(routing_key)
-        queue = amqp_connection.queue(queue_name, RJ.config[:queues][routing_key])
+        queue = connection.queue(queue_name, RJ.config[:queues][routing_key])
         messages_count += queue.status[:message_count]
         queue.delete
       end
