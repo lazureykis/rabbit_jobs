@@ -10,14 +10,6 @@ module RabbitJobs
   module Publisher
     extend self
 
-    def amqp_connection
-      Thread.current[:rj_publisher_connection] ||= AmqpHelper.prepare_connection
-    end
-
-    def amqp_channel
-      Thread.current[:rj_publisher_channel] ||= amqp_connection.create_channel
-    end
-
     def cleanup
       conn = Thread.current[:rj_publisher_connection]
       conn.close if conn && conn.status != :not_connected
@@ -38,17 +30,8 @@ module RabbitJobs
     end
 
     def direct_publish_to(routing_key, payload, ex = {})
-      ex = {name: ex} if ex.is_a?(String)
-      raise ArgumentError.new("Need to pass exchange name") if ex.size > 0 && ex[:name].to_s.empty?
-
       begin
-        exchange = if ex.size > 0
-          exchange_opts = Configuration::DEFAULT_EXCHANGE_PARAMS.merge(ex[:params] || {}).merge({type: (ex[:type] || :direct)})
-          amqp_channel.exchange(ex[:name].to_s, exchange_opts)
-        else
-          amqp_channel.default_exchange
-        end
-
+        exchange = get_exchange(ex)
         exchange.publish(payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({key: routing_key.to_sym}))
       rescue
         RJ.logger.warn $!.message
@@ -73,6 +56,32 @@ module RabbitJobs
       end
 
       messages_count
+    end
+
+    private
+
+    def settings
+      Thread.current[:rj_publisher] ||= {}
+    end
+
+    def connection
+      settings[:connection] ||= AmqpHelper.prepare_connection
+    end
+
+    def exchanges
+      settings[:exchanges] ||= {}
+    end
+
+    def get_exchange(ex = {})
+      ex = {name: ex} if ex.is_a?(String)
+      raise ArgumentError.new("Need to pass exchange name") if ex.size > 0 && ex[:name].to_s.empty?
+
+      if ex.size > 0
+        exchange_opts = Configuration::DEFAULT_EXCHANGE_PARAMS.merge(ex[:params] || {}).merge({type: (ex[:type] || :direct)})
+        exchanges[ex[:name]] ||= connection.channel.exchange(ex[:name].to_s, exchange_opts)
+      else
+        exchanges[ex[:name]] ||= connection.channel.default_exchange
+      end
     end
   end
 end

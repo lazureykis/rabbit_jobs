@@ -36,7 +36,7 @@ module RabbitJobs
           interval_types.each do |interval_type|
             if !config[interval_type].nil? && config[interval_type].length > 0
               RJ.logger.info "queueing #{config['class']} (#{name})"
-              rufus_scheduler.send(interval_type, config[interval_type]) do
+              rufus_scheduler.send(interval_type, config[interval_type], blocking: true) do
                 publish_from_config(config)
               end
               interval_defined = true
