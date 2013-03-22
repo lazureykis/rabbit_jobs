@@ -9,5 +9,4 @@ group :development do
   gem 'rspec', '~> 2.8'
   gem 'rr'
   gem 'simplecov', require: false
-  gem 'pry'
 end
