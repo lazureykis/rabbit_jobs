@@ -45,20 +45,27 @@ module RabbitJobs
       true
     end
 
+    def queue_status(routing_key)
+      raise ArgumentError unless routing_key.present?
+      queue_name = RabbitJobs.config.queue_name(routing_key)
+
+      queue_declare_ok = connection.default_channel.queue_declare(queue_name, RabbitJobs.config[:queues][routing_key].merge(:passive => true))
+      {
+        message_count: queue_declare_ok.message_count,
+        consumer_count: queue_declare_ok.consumer_count
+      }
+    end
+
     def purge_queue(*routing_keys)
       raise ArgumentError unless routing_keys.present?
 
       messages_count = 0
 
       routing_keys.map(&:to_sym).each do |routing_key|
-        channel = connection.default_channel
+        messages_count += queue_status(routing_key)[:message_count].to_i
+
         queue_name = RabbitJobs.config.queue_name(routing_key)
-
-        # TODO: really need declare here?
-        queue_declare_ok = channel.queue_declare(queue_name, RabbitJobs.config[:queues][routing_key].merge(:passive => true))
-        messages_count += queue_declare_ok.message_count
-
-        channel.queue_purge(queue_name)
+        connection.default_channel.queue_purge(queue_name)
       end
 
       messages_count
