@@ -103,10 +103,10 @@ module RabbitJobs
           RJ.logger.warn $!.inspect
           $!.backtrace.each {|l| RJ.logger.warn l}
         end
-        amqp_channel.ack(delivery_info.delivery_tag, false) if explicit_ack
+        true
       else
         RJ.logger.warn "before_process_message hook failed, requeuing payload: #{payload.inspect}"
-        amqp_channel.nack(delivery_info.delivery_tag, true) if explicit_ack
+        false
       end
     end
 
@@ -117,7 +117,11 @@ module RabbitJobs
       explicit_ack = !!queue_params(routing_key)[:ack]
 
       queue.subscribe(ack: explicit_ack) do |delivery_info, properties, payload|
-        consume_message(delivery_info, properties, payload)
+        if consume_message(delivery_info, properties, payload)
+          amqp_channel.ack(delivery_info.delivery_tag, false) if explicit_ack
+        else
+          amqp_channel.nack(delivery_info.delivery_tag, true) if explicit_ack
+        end
       end
     end
   end
