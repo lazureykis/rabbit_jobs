@@ -62,15 +62,16 @@ module RabbitJobs
         self.expires_in && self.expires_in > 0
       end
 
+      def expires_at_expired?
+        !!(self.opts['expires_at'] && Time.now.to_i > opts['expires_at'].to_i)
+      end
+
+      def expires_in_expired?
+        !!(expires? && opts['created_at'] && Time.now.to_i > (opts['created_at'].to_i + expires_in.to_i))
+      end
+
       def expired?
-        now = Time.now.to_i
-        if self.opts['expires_at']
-          now > opts['expires_at'].to_i
-        elsif expires? && opts['created_at']
-          now > (opts['created_at'].to_i + expires_in.to_i)
-        else
-          false
-        end
+        expires_at_expired? || expires_in_expired?
       end
 
       def to_ruby_string
