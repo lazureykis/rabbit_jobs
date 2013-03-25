@@ -3,12 +3,7 @@ module RabbitJobs
   class ErrorMailer
     class << self
       def enabled?
-        return false unless defined?(ActionMailer)
-        config_present = RabbitJobs.config.mail_errors_from &&
-                         RabbitJobs.config.mail_errors_to &&
-                         RabbitJobs.config.mail_errors_from.size > 0 &&
-                         RabbitJobs.config.mail_errors_to.size > 0
-        !!config_present
+        defined?(ActionMailer) && config_present?
       end
 
       def send_letter(subject, body)
@@ -24,6 +19,17 @@ module RabbitJobs
       def report_error(job, error = $!)
         return unless enabled?
 
+        begin
+          subject, text = build_error_message(job, error)
+          send_letter(subject, text)
+        rescue
+          RJ.logger.error [$!.message, $!.backtrace].flatten.join("\n")
+        end
+      end
+
+      private
+
+      def build_error_message(job, error)
         params = job.params || []
 
         params_str = params.map { |p| p.inspect }.join(', ')
@@ -31,12 +37,14 @@ module RabbitJobs
         text    = "\n#{job.class}.perform(#{params_str})\n"
         text   += "\n#{error.inspect}\n"
         text   += "\nBacktrace:\n#{error.backtrace.join("\n")}" if error.backtrace
+      end
 
-        begin
-          send_letter(subject, text)
-        rescue
-          RJ.logger.error [$!.message, $!.backtrace].flatten.join("\n")
-        end
+      def config_present?
+        present = RabbitJobs.config.mail_errors_from &&
+                  RabbitJobs.config.mail_errors_to &&
+                  RabbitJobs.config.mail_errors_from.size > 0 &&
+                  RabbitJobs.config.mail_errors_to.size > 0
+        !!present
       end
     end
   end
