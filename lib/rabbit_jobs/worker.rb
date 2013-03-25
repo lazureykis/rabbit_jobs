@@ -5,9 +5,9 @@ module RabbitJobs
     attr_accessor :process_name
     attr_reader :consumer
 
-    def consumer=(consumer)
-      raise ArgumentError.new("consumer=#{consumer.inspect}") unless consumer.respond_to?(:process_message)
-      @consumer = consumer
+    def consumer=(value)
+      raise ArgumentError.new("value=#{value.inspect}") unless value.respond_to?(:process_message)
+      @consumer = value
     end
 
     def amqp_connection

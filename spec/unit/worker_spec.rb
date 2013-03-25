@@ -2,30 +2,25 @@
 require 'spec_helper'
 
 describe RabbitJobs::Worker do
-  describe 'methods' do
-    before :each do
-      @worker = RabbitJobs::Worker.new
+
+  before(:each) do
+    RJ.configure do |c|
+      c.server 'amqp://localhost'
+      c.queue "default"
     end
+  end
 
-    it '#initialize with default options' do
-      @worker.queues.should == [:default]
-    end
+  let(:worker) { RJ::Worker.new(:default) }
 
-    it '#startup should set @shutdown to false' do
-      @worker.instance_variable_get('@shutdown').should_not == true
+  describe '#consumer' do
+    it 'validates consumer type' do
+      old_consumer = worker.consumer
+      lambda { worker.consumer = 123 }.should raise_error
+      worker.consumer.should == old_consumer
 
-      mock(Signal).trap('TERM')
-      mock(Signal).trap('INT')
-
-      @worker.startup
-
-      @worker.instance_variable_get('@shutdown').should_not == true
-    end
-
-    it '#shutdown should set @shutdown to true' do
-      @worker.instance_variable_get('@shutdown').should_not == true
-      @worker.shutdown
-      @worker.instance_variable_get('@shutdown').should == true
+      new_consumer = TestConsumer.new
+      lambda { worker.consumer = new_consumer }.should_not raise_error
+      worker.consumer.should == new_consumer
     end
   end
 end

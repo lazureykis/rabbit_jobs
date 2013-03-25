@@ -43,7 +43,7 @@ describe RabbitJobs::Publisher do
   end
 
   it 'should publish 1000 messages in one second' do
-    count = 100
+    count = 1000
     published = 0
     time = Benchmark.measure {
       count.times {
@@ -51,7 +51,7 @@ describe RabbitJobs::Publisher do
       }
       # sleep 0.1
       removed = RJ.purge_queue(:rspec_queue, :rspec_queue2, :rspec_queue3)
-      removed.should == 100
+      removed.should == 1000
     }
     puts time
   end

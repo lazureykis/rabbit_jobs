@@ -3,7 +3,7 @@ require 'json'
 require 'digest/md5'
 
 module RabbitJobs::Job
-  extend RabbitJobs::Helpers
+  include RabbitJobs::Helpers
   extend self
 
   def self.included(base)
