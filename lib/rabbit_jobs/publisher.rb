@@ -33,9 +33,9 @@ module RabbitJobs
     def direct_publish_to(routing_key, payload, ex = {})
       check_connection
       begin
-        exchange = get_exchange(ex)
-        exchange.publish(payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({key: routing_key.to_sym}))
-        # channel.wait_for_confirms
+        exchange_name = ex.delete(:name).to_s
+        exchange_opts = Configuration::DEFAULT_MESSAGE_PARAMS.merge(ex || {})
+        connection.default_channel.basic_publish(payload, exchange_name, routing_key, exchange_opts)
       rescue
         RabbitJobs.logger.warn $!.message
         RabbitJobs.logger.warn $!.backtrace.join("\n")
@@ -73,22 +73,6 @@ module RabbitJobs
         # settings[:channel].confirm_select
       end
       settings[:connection]
-    end
-
-    def exchanges
-      settings[:exchanges] ||= {}
-    end
-
-    def get_exchange(ex = {})
-      ex = {name: ex} if ex.is_a?(String)
-      raise ArgumentError.new("Need to pass exchange name") if ex.size > 0 && ex[:name].to_s.empty?
-
-      if ex.size > 0
-        exchange_opts = Configuration::DEFAULT_EXCHANGE_PARAMS.merge(ex[:params] || {}).merge({type: (ex[:type] || :direct)})
-        exchanges[ex[:name]] ||= connection.default_channel.exchange(ex[:name].to_s, exchange_opts)
-      else
-        exchanges[ex[:name]] ||= connection.default_channel.default_exchange
-      end
     end
 
     def check_connection
