@@ -63,17 +63,14 @@ module RabbitJobs
       processed_count = 0
 
       begin
-        # amqp_channel.prefetch(1)
-
         amqp_channel = amqp_connection.create_channel
+        amqp_channel.prefetch(1)
 
-        queue_objects = []
         queues.each do |routing_key|
           RJ.logger.info "Subscribing to #{queue_name(routing_key)}"
 
           routing_key = routing_key.to_sym
           queue = amqp_channel.queue(queue_name(routing_key), queue_params(routing_key))
-          queue_objects << queue
           explicit_ack = !!queue_params(routing_key)[:ack]
 
           queue.subscribe(ack: explicit_ack) do |delivery_info, properties, payload|
@@ -91,17 +88,14 @@ module RabbitJobs
               RJ.logger.warn "before_process_message hook failed, requeuing payload: #{payload.inspect}"
               amqp_channel.nack(delivery_info.delivery_tag, true) if explicit_ack
             end
-
-            if @shutdown
-              queue_objects.each {|q| q.unsubscribe}
-              RJ.logger.info "Processed jobs: #{processed_count}."
-            end
           end
         end
 
         RJ.logger.info "Started."
 
-        return main_loop(time)
+        return main_loop(time) {
+          RJ.logger.info "Processed jobs: #{processed_count}."
+        }
       rescue
         log_daemon_error($!)
       end

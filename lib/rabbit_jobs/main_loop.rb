@@ -21,7 +21,7 @@ module RabbitJobs
 
         if @shutdown
           RabbitJobs.logger.info "Stopping."
-
+          yield if block_given?
           return true
         end
       end
