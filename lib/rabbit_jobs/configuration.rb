@@ -142,18 +142,26 @@ module RabbitJobs
     end
 
     def convert_yaml_config(yaml)
+      yaml = parse_environment(yaml)
+
+      @data = {prefix: nil, queues: {}}
+      %w(server prefix mail_errors_to mail_errors_from).each do |m|
+        self.send(m, yaml[m])
+      end
+      yaml['queues'].each do |name, params|
+        queue name, symbolize_keys!(params) || {}
+      end
+    end
+
+    private
+
+    def parse_environment(yaml)
       if yaml['rabbit_jobs']
-        convert_yaml_config(yaml['rabbit_jobs'])
+        yaml['rabbit_jobs']
       elsif defined?(Rails) && yaml[Rails.env.to_s]
-        convert_yaml_config(yaml[Rails.env.to_s])
+        yaml[Rails.env.to_s]
       else
-        @data = {prefix: nil, queues: {}}
-        %w(server prefix mail_errors_to mail_errors_from).each do |m|
-          self.send(m, yaml[m])
-        end
-        yaml['queues'].each do |name, params|
-          queue name, symbolize_keys!(params) || {}
-        end
+        yaml
       end
     end
   end
