@@ -24,11 +24,8 @@ module RabbitJobs::Job
         execution_time = Time.now - start_time
         RJ.logger.info "     Job completed #{self.to_ruby_string} in #{execution_time} seconds."
       rescue
-        RJ.logger.warn $!.message
-        RJ.logger.warn(self.to_ruby_string)
-        RJ.logger.warn _cleanup_backtrace($!.backtrace).join("\n")
+        log_job_error($!)
         run_on_error_hooks($!)
-        RabbitJobs::ErrorMailer.report_error(self, $!)
       end
     end
 
@@ -89,6 +86,13 @@ module RabbitJobs::Job
       else
         ""
       end
+    end
+
+    def log_job_error(error)
+      RJ.logger.warn error.message
+      RJ.logger.warn(self.to_ruby_string)
+      RJ.logger.warn _cleanup_backtrace(error.backtrace).join("\n")
+      RabbitJobs::ErrorMailer.report_error(self, error) rescue nil
     end
   end
 
