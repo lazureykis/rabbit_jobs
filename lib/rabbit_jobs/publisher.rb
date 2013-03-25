@@ -51,10 +51,14 @@ module RabbitJobs
       messages_count = 0
 
       routing_keys.map(&:to_sym).each do |routing_key|
+        channel = connection.default_channel
         queue_name = RabbitJobs.config.queue_name(routing_key)
-        queue = connection.queue(queue_name, RabbitJobs.config[:queues][routing_key])
-        messages_count += queue.status[:message_count]
-        queue.purge
+
+        # TODO: really need declare here?
+        queue_declare_ok = channel.queue_declare(queue_name, RabbitJobs.config[:queues][routing_key].merge(:passive => true))
+        messages_count += queue_declare_ok.message_count
+
+        channel.queue_purge(queue_name)
       end
 
       messages_count
