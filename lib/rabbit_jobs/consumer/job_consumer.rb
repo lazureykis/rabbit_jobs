@@ -25,19 +25,23 @@ module RabbitJobs
       end
     end
 
+    def log_error(msg)
+      RJ.logger.error msg
+    end
+
     def report_error(error_type, *args)
       case error_type
       when :not_found
-        RJ.logger.error "Cannot find job class '#{args.first}'"
+        log_error "Cannot find job class '#{args.first}'"
       when :parsing_error
-        RJ.logger.error "Cannot initialize job. Json parsing error."
-        RJ.logger.error "Data received: #{args.first.inspect}"
+        log_error "Cannot initialize job. Json parsing error."
+        log_error "Data received: #{args.first.inspect}"
       when :error
         ex, payload = args
-        RJ.logger.warn "Cannot initialize job."
-        RJ.logger.warn ex.message
-        RJ.logger.warn _cleanup_backtrace(ex.backtrace).join("\n")
-        RJ.logger.warn "Data received: #{payload.inspect}"
+        log_error "Cannot initialize job."
+        log_error ex.message
+        log_error _cleanup_backtrace(ex.backtrace).join("\n")
+        log_error "Data received: #{payload.inspect}"
       end
     end
   end
