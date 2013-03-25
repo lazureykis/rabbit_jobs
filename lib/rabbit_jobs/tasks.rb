@@ -1,6 +1,4 @@
 require 'rabbit_jobs'
-require 'logger'
-require 'rake'
 
 def rails_env
   $my_rails_env ||= defined?(Rails) ? Rails.env : (ENV['RAILS_ENV'] || 'development')

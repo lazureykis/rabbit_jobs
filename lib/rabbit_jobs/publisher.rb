@@ -1,11 +1,5 @@
 # -*- encoding : utf-8 -*-
 
-require 'json'
-require 'bunny'
-require 'uri'
-require 'active_support'
-require 'active_support/core_ext/module'
-
 module RabbitJobs
   module Publisher
     extend self

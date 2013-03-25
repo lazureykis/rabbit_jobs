@@ -1,6 +1,4 @@
 # -*- encoding : utf-8 -*-
-require 'bunny'
-require 'uri'
 
 module RabbitJobs
   class AmqpHelper

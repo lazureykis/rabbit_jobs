@@ -1,7 +1,4 @@
 # -*- encoding : utf-8 -*-
-require 'yaml'
-require 'uri'
-
 module RabbitJobs
 
   extend self

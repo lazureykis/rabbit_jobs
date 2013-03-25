@@ -1,6 +1,15 @@
 # -*- encoding : utf-8 -*-
 require 'logger'
 require 'rake'
+require 'json'
+require 'digest/md5'
+require 'bunny'
+require 'uri'
+require 'rufus/scheduler'
+require 'thwait'
+require 'yaml'
+require 'active_support'
+require 'active_support/core_ext'
 
 require 'rabbit_jobs/version'
 

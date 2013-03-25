@@ -1,7 +1,4 @@
 # -*- encoding : utf-8 -*-
-require 'json'
-require 'digest/md5'
-
 module RabbitJobs
   module Job
     include RabbitJobs::Helpers

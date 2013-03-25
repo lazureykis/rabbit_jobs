@@ -1,10 +1,4 @@
 # -*- encoding : utf-8 -*-
-
-require 'rufus/scheduler'
-require 'thwait'
-require 'yaml'
-require 'active_support/core_ext'
-
 module RabbitJobs
   class Scheduler
     include MainLoop
