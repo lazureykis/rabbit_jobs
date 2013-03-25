@@ -45,10 +45,9 @@ module RabbitJobs
     end
 
     def purge_queue(*routing_keys)
-      raise ArgumentError unless routing_keys && routing_keys.count > 0
+      raise ArgumentError unless routing_keys.present?
 
       messages_count = 0
-      count = routing_keys.count
 
       routing_keys.map(&:to_sym).each do |routing_key|
         queue_name = RabbitJobs.config.queue_name(routing_key)
