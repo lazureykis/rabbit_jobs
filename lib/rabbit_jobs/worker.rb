@@ -2,7 +2,7 @@
 
 module RabbitJobs
   class Worker
-    include RJ::MainLoop
+    include MainLoop
 
     attr_accessor :process_name
     attr_reader :consumer

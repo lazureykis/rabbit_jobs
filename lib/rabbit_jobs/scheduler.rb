@@ -6,7 +6,7 @@ require 'yaml'
 
 module RabbitJobs
   class Scheduler
-    include RJ::MainLoop
+    include MainLoop
 
     attr_accessor :schedule, :process_name
 
@@ -36,7 +36,7 @@ module RabbitJobs
           interval_types = %w{cron every}
           interval_types.each do |interval_type|
             if !config[interval_type].nil? && config[interval_type].length > 0
-              RJ.logger.info "queueing #{config['class']} (#{name})"
+              RabbitJobs.logger.info "queueing #{config['class']} (#{name})"
               rufus_scheduler.send(interval_type, config[interval_type], blocking: true) do
                 publish_from_config(config)
               end
@@ -45,7 +45,7 @@ module RabbitJobs
             end
           end
           unless interval_defined
-            RJ.logger.warn "no #{interval_types.join(' / ')} found for #{config['class']} (#{name}) - skipping"
+            RabbitJobs.logger.warn "no #{interval_types.join(' / ')} found for #{config['class']} (#{name}) - skipping"
           end
         end
       end
@@ -61,13 +61,13 @@ module RabbitJobs
       args = config['args'] || config[:args] || []
       klass_name = config['class'] || config[:class]
       params = args.is_a?(Hash) ? [args] : Array(args)
-      queue = config['queue'] || config[:queue] || RJ.config.routing_keys.first
+      queue = config['queue'] || config[:queue] || RabbitJobs.config.routing_keys.first
 
-      RJ.logger.info "publishing #{config} at #{Time.now}"
-      RJ.publish_to(queue, klass_name, *params)
+      RabbitJobs.logger.info "publishing #{config} at #{Time.now}"
+      RabbitJobs.publish_to(queue, klass_name, *params)
     rescue
-      RJ.logger.warn "Failed to publish #{klass_name}:\n #{$!}\n params = #{params.inspect}"
-      RJ.logger.warn $!.inspect
+      RabbitJobs.logger.warn "Failed to publish #{klass_name}:\n #{$!}\n params = #{params.inspect}"
+      RabbitJobs.logger.warn $!.inspect
     end
 
     def rufus_scheduler
@@ -89,7 +89,7 @@ module RabbitJobs
 
         $0 = self.process_name || "rj_scheduler"
 
-        RJ.logger.info "Started."
+        RabbitJobs.logger.info "Started."
 
         load_schedule!
 

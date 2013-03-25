@@ -21,15 +21,15 @@ module RabbitJobs
   extend self
 
   def publish_to(routing_key, klass, *params)
-    RJ::Publisher.publish_to(routing_key, klass, *params)
+    Publisher.publish_to(routing_key, klass, *params)
   end
 
   def direct_publish_to(routing_key, payload, ex = {})
-    RJ::Publisher.direct_publish_to(routing_key, payload, ex)
+    Publisher.direct_publish_to(routing_key, payload, ex)
   end
 
   def purge_queue(*routing_keys)
-    RJ::Publisher.purge_queue(*routing_keys)
+    Publisher.purge_queue(*routing_keys)
   end
 
   attr_writer :logger

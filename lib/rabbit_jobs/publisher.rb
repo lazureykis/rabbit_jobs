@@ -18,7 +18,7 @@ module RabbitJobs
 
     def publish_to(routing_key, klass, *params)
       raise ArgumentError.new("klass=#{klass.inspect}") unless klass && (klass.is_a?(Class) || klass.is_a?(String))
-      raise ArgumentError.new("routing_key=#{routing_key}") unless routing_key && (routing_key.is_a?(Symbol) || routing_key.is_a?(String)) && !!RJ.config[:queues][routing_key.to_sym]
+      raise ArgumentError.new("routing_key=#{routing_key}") unless routing_key && (routing_key.is_a?(Symbol) || routing_key.is_a?(String)) && !!RabbitJobs.config[:queues][routing_key.to_sym]
 
       payload = {
         'class' => klass.to_s,
@@ -26,7 +26,7 @@ module RabbitJobs
         'params' => params
         }.to_json
 
-      direct_publish_to(RJ.config.queue_name(routing_key.to_sym), payload)
+      direct_publish_to(RabbitJobs.config.queue_name(routing_key.to_sym), payload)
     end
 
     def direct_publish_to(routing_key, payload, ex = {})
@@ -36,8 +36,8 @@ module RabbitJobs
         exchange.publish(payload, Configuration::DEFAULT_MESSAGE_PARAMS.merge({key: routing_key.to_sym}))
         # channel.wait_for_confirms
       rescue
-        RJ.logger.warn $!.message
-        RJ.logger.warn $!.backtrace.join("\n")
+        RabbitJobs.logger.warn $!.message
+        RabbitJobs.logger.warn $!.backtrace.join("\n")
         raise $!
       end
 
@@ -51,8 +51,8 @@ module RabbitJobs
       count = routing_keys.count
 
       routing_keys.map(&:to_sym).each do |routing_key|
-        queue_name = RJ.config.queue_name(routing_key)
-        queue = connection.queue(queue_name, RJ.config[:queues][routing_key])
+        queue_name = RabbitJobs.config.queue_name(routing_key)
+        queue = connection.queue(queue_name, RabbitJobs.config[:queues][routing_key])
         messages_count += queue.status[:message_count]
         queue.purge
       end
@@ -68,7 +68,7 @@ module RabbitJobs
 
     def connection
       unless settings[:connection]
-        settings[:connection] = Bunny.new(RJ.config.server, :heartbeat_interval => 5)
+        settings[:connection] = Bunny.new(RabbitJobs.config.server, :heartbeat_interval => 5)
         settings[:connection].start
         # settings[:channel].confirm_select
       end

@@ -23,7 +23,7 @@ module RabbitJobs
           subject, text = build_error_message(job, error)
           send_letter(subject, text)
         rescue
-          RJ.logger.error [$!.message, $!.backtrace].flatten.join("\n")
+          RabbitJobs.logger.error [$!.message, $!.backtrace].flatten.join("\n")
         end
       end
 

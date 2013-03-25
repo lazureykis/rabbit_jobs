@@ -20,7 +20,7 @@ module RabbitJobs
         end
 
         if @shutdown
-          RJ.logger.info "Stopping."
+          RabbitJobs.logger.info "Stopping."
 
           return true
         end
@@ -28,9 +28,9 @@ module RabbitJobs
     end
 
     def log_daemon_error(error)
-      if RJ.logger
+      if RabbitJobs.logger
         begin
-          RJ.logger.error [error.message, error.backtrace].flatten.join("\n")
+          RabbitJobs.logger.error [error.message, error.backtrace].flatten.join("\n")
         ensure
           abort(error.message)
         end
