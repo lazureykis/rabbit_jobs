@@ -45,13 +45,6 @@ module RabbitJobs
       true
     end
 
-    # def queue_status(routing_key)
-    #   raise ArgumentError unless routing_key.present?
-
-    #   routing_key = routing_key.to_sym
-    #   connection.default_channel.queue(routing_key, RabbitJobs.config[:queues][routing_key]).status
-    # end
-
     def queue_status(routing_key)
       raise ArgumentError unless routing_key.present?
 

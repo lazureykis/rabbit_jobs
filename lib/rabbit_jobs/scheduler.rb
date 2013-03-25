@@ -27,27 +27,7 @@ module RabbitJobs
       raise "You should setup a schedule or place it in config/schedule.yml" unless schedule
 
       schedule.each do |name, config|
-        # If rails_env is set in the config, enforce ENV['RAILS_ENV'] as
-        # required for the jobs to be scheduled.  If rails_env is missing, the
-        # job should be scheduled regardless of what ENV['RAILS_ENV'] is set
-        # to.
-        if config['rails_env'].nil? || rails_env_matches?(config)
-          interval_defined = false
-          interval_types = %w{cron every}
-          interval_types.each do |interval_type|
-            if !config[interval_type].nil? && config[interval_type].length > 0
-              RabbitJobs.logger.info "queueing #{config['class']} (#{name})"
-              rufus_scheduler.send(interval_type, config[interval_type], blocking: true) do
-                publish_from_config(config)
-              end
-              interval_defined = true
-              break
-            end
-          end
-          unless interval_defined
-            RabbitJobs.logger.warn "no #{interval_types.join(' / ')} found for #{config['class']} (#{name}) - skipping"
-          end
-        end
+        setup_job_schedule(name, config)
       end
     end
 
@@ -112,6 +92,30 @@ module RabbitJobs
       Signal.trap('INT')  { shutdown! }
 
       true
+    end
+
+    def setup_job_schedule(name, config)
+      # If rails_env is set in the config, enforce ENV['RAILS_ENV'] as
+      # required for the jobs to be scheduled.  If rails_env is missing, the
+      # job should be scheduled regardless of what ENV['RAILS_ENV'] is set
+      # to.
+      if config['rails_env'].nil? || rails_env_matches?(config)
+        interval_defined = false
+        interval_types = %w{cron every}
+        interval_types.each do |interval_type|
+          if !config[interval_type].nil? && config[interval_type].length > 0
+            RabbitJobs.logger.info "queueing #{config['class']} (#{name})"
+            rufus_scheduler.send(interval_type, config[interval_type], blocking: true) do
+              publish_from_config(config)
+            end
+            interval_defined = true
+            break
+          end
+        end
+        unless interval_defined
+          RabbitJobs.logger.warn "no #{interval_types.join(' / ')} found for #{config['class']} (#{name}) - skipping"
+        end
+      end
     end
   end
 end
