@@ -1,4 +1,5 @@
-module RJ
+# -*- encoding : utf-8 -*-
+module RabbitJobs
   module MainLoop
     def shutdown
       @shutdown = true
