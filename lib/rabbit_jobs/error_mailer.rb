@@ -40,11 +40,8 @@ module RabbitJobs
       end
 
       def config_present?
-        present = RabbitJobs.config.mail_errors_from &&
-                  RabbitJobs.config.mail_errors_to &&
-                  RabbitJobs.config.mail_errors_from.size > 0 &&
-                  RabbitJobs.config.mail_errors_to.size > 0
-        !!present
+        config = RabbitJobs.config
+        config.mail_errors_from.present? && config.mail_errors_to.present?
       end
     end
   end
