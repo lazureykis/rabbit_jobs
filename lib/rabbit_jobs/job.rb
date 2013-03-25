@@ -76,14 +76,18 @@ module RabbitJobs::Job
 
     def to_ruby_string
       rs = self.class.name
-      if params.count > 0
-        rs << "("
-          rs << params.map(&:to_s).join(", ")
-        rs << ")"
-      end
+      rs << params_string
       if opts.count > 0
         rs << ", opts: "
         rs << opts.inspect
+      end
+    end
+
+    def params_string
+      if params.count > 0
+        "(#{params.map(&:to_s).join(", ")})"
+      else
+        ""
       end
     end
   end
