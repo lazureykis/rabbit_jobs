@@ -6,6 +6,7 @@ require 'yaml'
 
 module RabbitJobs
   class Scheduler
+    include RJ::MainLoop
 
     attr_accessor :schedule, :process_name
 
@@ -90,25 +91,9 @@ module RabbitJobs
 
         RJ.logger.info "Started."
 
-        processed_count = 0
         load_schedule!
 
-        while true
-          sleep 1
-          if time > 0
-            time -= 1
-            if time == 0
-              shutdown
-            end
-          end
-
-          if @shutdown
-            RJ.logger.info "Processed jobs: #{processed_count}."
-            RJ.logger.info "Stopped."
-
-            return true
-          end
-        end
+        return main_loop(time)
       rescue => e
         error = $!
         if RJ.logger
@@ -123,11 +108,6 @@ module RabbitJobs
       true
     end
 
-    def shutdown
-      RJ.logger.info "Stopping..."
-      @shutdown = true
-    end
-
     def startup
       # Fix buffering so we can `rake rj:work > resque.log` and
       # get output from the child in there.
@@ -139,10 +119,6 @@ module RabbitJobs
       Signal.trap('INT')  { shutdown! }
 
       true
-    end
-
-    def shutdown!
-      shutdown
     end
   end
 end

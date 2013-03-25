@@ -2,6 +2,8 @@
 
 module RabbitJobs
   class Worker
+    include RJ::MainLoop
+
     attr_accessor :process_name
     attr_reader :consumer
 
@@ -92,27 +94,14 @@ module RabbitJobs
 
             if @shutdown
               queue_objects.each {|q| q.unsubscribe}
+              RJ.logger.info "Processed jobs: #{processed_count}."
             end
           end
         end
 
         RJ.logger.info "Started."
 
-        while true
-          sleep 1
-          if time > 0
-            time -= 1
-            if time == 0
-              shutdown
-            end
-          end
-
-          if @shutdown
-            RJ.logger.info "Processed jobs: #{processed_count}."
-            RJ.logger.info "Stopped."
-            return true
-          end
-        end
+        return main_loop(time)
       rescue
         error = $!
         if RJ.logger
@@ -127,10 +116,6 @@ module RabbitJobs
       true
     end
 
-    def shutdown
-      @shutdown = true
-    end
-
     def startup
       count = RJ._run_after_fork_callbacks
 
@@ -142,10 +127,6 @@ module RabbitJobs
       Signal.trap('INT')  { shutdown! }
 
       true
-    end
-
-    def shutdown!
-      shutdown
     end
   end
 end
