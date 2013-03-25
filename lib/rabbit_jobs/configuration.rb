@@ -156,13 +156,9 @@ module RabbitJobs
     private
 
     def parse_environment(yaml)
-      if yaml['rabbit_jobs']
-        yaml['rabbit_jobs']
-      elsif defined?(Rails) && yaml[Rails.env.to_s]
-        yaml[Rails.env.to_s]
-      else
-        yaml
-      end
+      yaml['rabbit_jobs'] ||
+      (defined?(Rails) && yaml[Rails.env.to_s]) ||
+      yaml
     end
   end
 end
