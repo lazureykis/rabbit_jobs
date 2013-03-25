@@ -17,8 +17,9 @@ module RabbitJobs
     end
 
     def publish_to(routing_key, klass, *params)
-      raise ArgumentError.new("klass=#{klass.inspect}") unless klass && (klass.is_a?(Class) || klass.is_a?(String))
-      raise ArgumentError.new("routing_key=#{routing_key}") unless routing_key && (routing_key.is_a?(Symbol) || routing_key.is_a?(String)) && !!RabbitJobs.config[:queues][routing_key.to_sym]
+      raise ArgumentError.new("klass=#{klass.inspect}") unless klass.is_a?(Class) || klass.is_a?(String)
+      routing_key = routing_key.to_sym unless routing_key.is_a?(Symbol)
+      raise ArgumentError.new("routing_key=#{routing_key}") unless RabbitJobs.config[:queues][routing_key]
 
       payload = {
         'class' => klass.to_s,
@@ -26,7 +27,7 @@ module RabbitJobs
         'params' => params
         }.to_json
 
-      direct_publish_to(RabbitJobs.config.queue_name(routing_key.to_sym), payload)
+      direct_publish_to(RabbitJobs.config.queue_name(routing_key), payload)
     end
 
     def direct_publish_to(routing_key, payload, ex = {})
