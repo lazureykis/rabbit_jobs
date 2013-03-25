@@ -3,18 +3,24 @@
 require 'rufus/scheduler'
 require 'thwait'
 require 'yaml'
+require 'active_support/core_ext'
 
 module RabbitJobs
   class Scheduler
     include MainLoop
 
-    attr_accessor :schedule, :process_name
+    attr_reader :schedule, :process_name
+    attr_writer :process_name
+
+    def schedule=(value)
+      @schedule = HashWithIndifferentAccess.new(value)
+    end
 
     def load_default_schedule
       if defined?(Rails)
         file = Rails.root.join('config/schedule.yml')
         if file.file?
-          @schedule = YAML.load_file(file)
+          @schedule = HashWithIndifferentAccess.new(YAML.load_file(file))
         end
       end
     end
@@ -44,13 +50,12 @@ module RabbitJobs
 
     # Publish a job based on a config hash
     def publish_from_config(config)
-      args = config['args'] || config[:args] || []
-      klass_name = config['class'] || config[:class]
-      params = args.is_a?(Hash) ? [args] : Array(args)
-      queue = config['queue'] || config[:queue] || RabbitJobs.config.routing_keys.first
+      args = config[:args] || []
+      klass_name = config[:class]
+      params = [args].flatten
 
       RabbitJobs.logger.info "publishing #{config} at #{Time.now}"
-      RabbitJobs.publish_to(queue, klass_name, *params)
+      RabbitJobs.publish_to(config[:queue], klass_name, *params)
     rescue
       RabbitJobs.logger.warn "Failed to publish #{klass_name}:\n #{$!}\n params = #{params.inspect}"
       RabbitJobs.logger.warn $!.inspect
@@ -103,7 +108,7 @@ module RabbitJobs
     def setup_job_schedule(name, config)
       interval_defined = false
       %w(cron every).each do |interval_type|
-        if !config[interval_type].nil? && config[interval_type].length > 0
+        if config[interval_type].present?
           RabbitJobs.logger.info "queueing #{config['class']} (#{name})"
           rufus_scheduler.send(interval_type, config[interval_type], blocking: true) do
             publish_from_config(config)
