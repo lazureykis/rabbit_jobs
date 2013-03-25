@@ -45,11 +45,22 @@ module RabbitJobs
       true
     end
 
+    # def queue_status(routing_key)
+    #   raise ArgumentError unless routing_key.present?
+
+    #   routing_key = routing_key.to_sym
+    #   connection.default_channel.queue(routing_key, RabbitJobs.config[:queues][routing_key]).status
+    # end
+
     def queue_status(routing_key)
       raise ArgumentError unless routing_key.present?
 
       routing_key = routing_key.to_sym
-      connection.default_channel.queue(routing_key, RabbitJobs.config[:queues][routing_key]).status
+      queue_declare_ok = connection.default_channel.queue_declare(routing_key, RabbitJobs.config[:queues][routing_key].merge(passive: true))
+      {
+        message_count: queue_declare_ok.message_count,
+        consumer_count: queue_declare_ok.consumer_count
+      }
     end
 
     def purge_queue(*routing_keys)
@@ -58,8 +69,7 @@ module RabbitJobs
       messages_count = 0
 
       routing_keys.map(&:to_sym).each do |routing_key|
-        queue = connection.default_channel.queue(routing_key, RabbitJobs.config[:queues][routing_key])
-        messages_count += queue.status[:message_count].to_i
+        messages_count += queue_status(routing_key)[:message_count].to_i
         connection.default_channel.queue_purge(routing_key)
       end
 
