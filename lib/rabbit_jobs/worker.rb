@@ -56,41 +56,20 @@ module RabbitJobs
 
       $0 = self.process_name || "rj_worker (#{queues.join(', ')})"
 
-      processed_count = 0
+      @processed_count = 0
 
       begin
         amqp_channel = amqp_connection.create_channel
         amqp_channel.prefetch(1)
 
         queues.each do |routing_key|
-          RJ.logger.info "Subscribing to #{routing_key}"
-
-          routing_key = routing_key.to_sym
-          queue = amqp_channel.queue(routing_key, queue_params(routing_key))
-          explicit_ack = !!queue_params(routing_key)[:ack]
-
-          queue.subscribe(ack: explicit_ack) do |delivery_info, properties, payload|
-            if RJ.run_before_process_message_callbacks
-              begin
-                @consumer.process_message(delivery_info, properties, payload)
-                processed_count += 1
-              rescue
-                RJ.logger.warn "process_message failed. payload: #{payload.inspect}"
-                RJ.logger.warn $!.inspect
-                $!.backtrace.each {|l| RJ.logger.warn l}
-              end
-              amqp_channel.ack(delivery_info.delivery_tag, false) if explicit_ack
-            else
-              RJ.logger.warn "before_process_message hook failed, requeuing payload: #{payload.inspect}"
-              amqp_channel.nack(delivery_info.delivery_tag, true) if explicit_ack
-            end
-          end
+          consume_queue(amqp_channel, routing_key)
         end
 
         RJ.logger.info "Started."
 
         return main_loop(time) {
-          RJ.logger.info "Processed jobs: #{processed_count}."
+          RJ.logger.info "Processed jobs: #{@processed_count}."
         }
       rescue
         log_daemon_error($!)
@@ -110,6 +89,32 @@ module RabbitJobs
       Signal.trap('INT')  { shutdown! }
 
       true
+    end
+
+    private
+
+    def consume_queue(amqp_channel, routing_key)
+      RJ.logger.info "Subscribing to #{routing_key}"
+      routing_key = routing_key.to_sym
+      queue = amqp_channel.queue(routing_key, queue_params(routing_key))
+      explicit_ack = !!queue_params(routing_key)[:ack]
+
+      queue.subscribe(ack: explicit_ack) do |delivery_info, properties, payload|
+        if RJ.run_before_process_message_callbacks
+          begin
+            @consumer.process_message(delivery_info, properties, payload)
+            @processed_count += 1
+          rescue
+            RJ.logger.warn "process_message failed. payload: #{payload.inspect}"
+            RJ.logger.warn $!.inspect
+            $!.backtrace.each {|l| RJ.logger.warn l}
+          end
+          amqp_channel.ack(delivery_info.delivery_tag, false) if explicit_ack
+        else
+          RJ.logger.warn "before_process_message hook failed, requeuing payload: #{payload.inspect}"
+          amqp_channel.nack(delivery_info.delivery_tag, true) if explicit_ack
+        end
+      end
     end
   end
 end
