@@ -103,14 +103,7 @@ module RabbitJobs
 
         return main_loop(time)
       rescue
-        error = $!
-        if RJ.logger
-          begin
-            RJ.logger.error [error.message, error.backtrace].flatten.join("\n")
-          ensure
-            abort(error.message)
-          end
-        end
+        log_daemon_error($!)
       end
 
       true

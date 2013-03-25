@@ -25,5 +25,15 @@ module RJ
         end
       end
     end
+
+    def log_daemon_error(error)
+      if RJ.logger
+        begin
+          RJ.logger.error [error.message, error.backtrace].flatten.join("\n")
+        ensure
+          abort(error.message)
+        end
+      end
+    end
   end
 end

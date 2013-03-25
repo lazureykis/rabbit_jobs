@@ -94,15 +94,8 @@ module RabbitJobs
         load_schedule!
 
         return main_loop(time)
-      rescue => e
-        error = $!
-        if RJ.logger
-          begin
-            RJ.logger.error [error.message, error.backtrace].flatten.join("\n")
-          ensure
-            abort(error.message)
-          end
-        end
+      rescue
+        log_daemon_error($!)
       end
 
       true
