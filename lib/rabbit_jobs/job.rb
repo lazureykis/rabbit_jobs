@@ -121,18 +121,11 @@ module RabbitJobs::Job
       job.opts = encoded['opts']
       job
     rescue NameError
-      RJ.logger.error "Cannot find job class '#{encoded['class']}'"
-      :not_found
+      [:not_found, encoded['class']]
     rescue JSON::ParserError
-      RJ.logger.error "Cannot initialize job. Json parsing error."
-      RJ.logger.error "Data received: #{payload.inspect}"
-      :parsing_error
+      [:parsing_error, payload]
     rescue
-      RJ.logger.warn "Cannot initialize job."
-      RJ.logger.warn $!.message
-      RJ.logger.warn _cleanup_backtrace($!.backtrace).join("\n")
-      RJ.logger.warn "Data received: #{payload.inspect}"
-      :error
+      [:error, $!, payload]
     end
   end
 end
