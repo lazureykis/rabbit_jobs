@@ -62,10 +62,11 @@ module RabbitJobs::Job
     end
 
     def expired?
+      now = Time.now.to_i
       if self.opts['expires_at']
-        Time.now.to_i > opts['expires_at'].to_i
+        now > opts['expires_at'].to_i
       elsif expires? && opts['created_at']
-        Time.now.to_i > (opts['created_at'].to_i + expires_in.to_i)
+        now > (opts['created_at'].to_i + expires_in.to_i)
       else
         false
       end
