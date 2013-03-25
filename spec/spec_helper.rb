@@ -20,4 +20,12 @@ RSpec.configure do |config|
     # clear config options
     RabbitJobs.class_variable_set '@@configuration', nil
   end
+
+  if ENV['CC_BUILD_ARTIFACTS']
+    # "-c -f p -f h -o #{ENV['CC_BUILD_ARTIFACTS']}/rspec_report.html"
+    config.out = File.open "#{ENV['CC_BUILD_ARTIFACTS']}/rspec_report.html", 'w'
+    # config.color_enabled = true
+    # config.formatter = :progress
+    config.formatter = :html
+  end
 end
