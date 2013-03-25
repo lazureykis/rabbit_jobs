@@ -22,12 +22,8 @@ module RabbitJobs
       Thread.current[:rj_worker_connection] = nil
     end
 
-    def queue_name(routing_key)
-      RJ.config.queue_name(routing_key)
-    end
-
     def queue_params(routing_key)
-      RJ.config[:queues][routing_key]
+      RJ.config[:queues][routing_key.to_sym]
     end
 
     # Workers should be initialized with an array of string queue
@@ -67,10 +63,10 @@ module RabbitJobs
         amqp_channel.prefetch(1)
 
         queues.each do |routing_key|
-          RJ.logger.info "Subscribing to #{queue_name(routing_key)}"
+          RJ.logger.info "Subscribing to #{routing_key}"
 
           routing_key = routing_key.to_sym
-          queue = amqp_channel.queue(queue_name(routing_key), queue_params(routing_key))
+          queue = amqp_channel.queue(routing_key, queue_params(routing_key))
           explicit_ack = !!queue_params(routing_key)[:ack]
 
           queue.subscribe(ack: explicit_ack) do |delivery_info, properties, payload|

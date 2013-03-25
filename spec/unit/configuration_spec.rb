@@ -8,8 +8,6 @@ describe RabbitJobs::Configuration do
 
       c.server "amqp://somehost.lan"
 
-      c.prefix 'my_prefix'
-
       c.queue 'durable_queue', durable: true,  auto_delete: false, ack: true, arguments: {'x-ha-policy' => 'all'}
       c.queue 'fast_queue',    durable: false, auto_delete: true,  ack: false
     end
@@ -17,7 +15,6 @@ describe RabbitJobs::Configuration do
     RabbitJobs.config.to_hash.should == {
       error_log: false,
       server: "amqp://somehost.lan",
-      prefix: "my_prefix",
       queues: {
         durable_queue: {
           auto_delete: false,
@@ -40,7 +37,6 @@ describe RabbitJobs::Configuration do
     RabbitJobs.config.load_file(File.expand_path('../../fixtures/config.yml', __FILE__))
 
     RabbitJobs.config.to_hash.should == {
-      prefix: "rabbit_jobs",
       server: "amqp://example.com/vhost",
       queues: {
         durable_queue: {
@@ -60,19 +56,17 @@ describe RabbitJobs::Configuration do
     }
   end
 
-  it 'use default values for #server and #prefix' do
+  it 'use default value for #server' do
     RabbitJobs.config.to_hash.should == {
       error_log: true,
-      server: "amqp://localhost/",
-      prefix: "rabbit_jobs",
+      server: "amqp://localhost",
       queues: {}
     }
   end
 
   it 'returns settings on some methods' do
     RabbitJobs.config.error_log == true
-    RabbitJobs.config.server.should == 'amqp://localhost/'
+    RabbitJobs.config.server.should == 'amqp://localhost'
     RabbitJobs.config.routing_keys.should == []
-    RabbitJobs.config.prefix.should == 'rabbit_jobs'
   end
 end

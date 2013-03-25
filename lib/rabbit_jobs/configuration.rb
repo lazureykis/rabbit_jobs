@@ -28,7 +28,7 @@ module RabbitJobs
 
     unless @@configuration
       self.configure do |c|
-        c.prefix 'rabbit_jobs'
+        c.server "amqp://localhost"
       end
     end
 
@@ -63,8 +63,7 @@ module RabbitJobs
     def initialize
       @data = {
         error_log: true,
-        server: 'amqp://localhost/',
-        prefix: 'rabbit_jobs',
+        server: 'amqp://localhost',
         queues: {}
       }
     end
@@ -102,15 +101,6 @@ module RabbitJobs
       @data[:server]
     end
 
-    def prefix(value = nil)
-      if value
-        raise ArgumentError unless value.is_a?(String) && value != ""
-        @data[:prefix] = value.downcase
-      else
-        @data[:prefix]
-      end
-    end
-
     def queue(name, params = {})
       raise ArgumentError.new("name is #{name.inspect}") unless name && name.is_a?(String) && name != ""
       raise ArgumentError.new("params is #{params.inspect}") unless params && params.is_a?(Hash)
@@ -128,11 +118,6 @@ module RabbitJobs
       @data[:queues].keys
     end
 
-    def queue_name(routing_key)
-      routing_key = routing_key.to_sym
-      @data[:queues][routing_key][:ignore_prefix] ? routing_key : [@data[:prefix], routing_key].compact.join('#')
-    end
-
     def load_file(filename)
       load_yaml(File.read(filename))
     end
@@ -144,8 +129,8 @@ module RabbitJobs
     def convert_yaml_config(yaml)
       yaml = parse_environment(yaml)
 
-      @data = {prefix: nil, queues: {}}
-      %w(server prefix mail_errors_to mail_errors_from).each do |m|
+      @data = {queues: {}}
+      %w(server mail_errors_to mail_errors_from).each do |m|
         self.send(m, yaml[m])
       end
       yaml['queues'].each do |name, params|
