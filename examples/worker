@@ -7,7 +7,7 @@ require File.expand_path('../../lib/rabbit_jobs', __FILE__)
 
 class MyCurrentJob
   include RJ::Job
-  def self.perform(count = 0)
+  def perform(count = 0)
     puts count
     # RJ.publish_to(:default, MyCurrentJob, count - 1) if count > 0
   end
@@ -15,7 +15,7 @@ end
 
 RJ.configure { |c|
   c.queue "failover_test"
-  c.server "amqp://localhost/bunny"
+  c.server "amqp://localhost/rj"
 }
 
 worker = RJ::Worker.new

@@ -18,7 +18,7 @@ module RabbitJobs
         begin
           start_time = Time.now
           RabbitJobs.logger.info "Started to perform #{self.to_ruby_string}"
-          self.class.perform(*params)
+          self.perform(*params)
           execution_time = Time.now - start_time
           RabbitJobs.logger.info "     Job completed #{self.to_ruby_string} in #{execution_time} seconds."
         rescue
@@ -116,6 +116,15 @@ module RabbitJobs
           @rj_on_error_hooks ||= []
           @rj_on_error_hooks << proc_or_symbol
         end
+      end
+
+      def queue(routing_key)
+        raise ArgumentError unless routing_key.present?
+        @rj_queue = routing_key.to_sym
+      end
+
+      def perform_async(*args)
+        RJ::Publisher.publish_to(@rj_queue || :jobs, self, *args)
       end
     end
 

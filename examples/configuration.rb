@@ -18,7 +18,7 @@ class MyJob < RabbitJobs::Job
 
   expires_in 60 # dont perform this job after 60 seconds
 
-  def self.perform(time)
+  def perform(time)
     puts "This job was published at #{}"
   end
 end
