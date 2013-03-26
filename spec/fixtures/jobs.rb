@@ -2,6 +2,8 @@
 
 class TestJob
   include RJ::Job
+  def perform
+  end
 end
 
 class PrintTimeJob

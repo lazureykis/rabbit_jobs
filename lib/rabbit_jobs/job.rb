@@ -126,6 +126,14 @@ module RabbitJobs
       def perform_async(*args)
         RJ::Publisher.publish_to(@rj_queue || :jobs, self, *args)
       end
+
+      def serialize_job(*params)
+        {
+          'class' => self.to_s,
+          'opts' => {'created_at' => Time.now.to_i},
+          'params' => params
+        }.to_json
+      end
     end
 
     def self.parse(payload)
