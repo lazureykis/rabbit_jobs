@@ -7,7 +7,7 @@ describe RabbitJobs::Consumer::JobConsumer do
 
   describe '#process_message' do
     it 'parses job' do
-      payload = TestJob.serialize_job
+      payload = Job.serialize(TestJob)
       mock(RJ::Job).parse(payload) { job }
       consumer.process_message(:delivery_info, :properties, payload)
     end
@@ -17,7 +17,7 @@ describe RabbitJobs::Consumer::JobConsumer do
       consumer.process_message(:delivery_info, :properties, payload).should == true
     end
     it 'skips expired jobs' do
-      payload = TestJob.serialize_job
+      payload = Job.serialize(TestJob)
       job
       mock(TestJob).new { job }
       mock(job).expired? { true }
@@ -26,7 +26,7 @@ describe RabbitJobs::Consumer::JobConsumer do
     end
 
     it 'executes job.perform' do
-      payload = TestJob.serialize_job
+      payload = Job.serialize(TestJob)
       job
       mock(TestJob).new { job }
       mock(job).run_perform

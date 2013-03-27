@@ -18,7 +18,7 @@ module RabbitJobs
         begin
           start_time = Time.now
           RabbitJobs.logger.info "Started to perform #{self.to_ruby_string}"
-          self.perform(*params)
+          perform(*params)
           execution_time = Time.now - start_time
           RabbitJobs.logger.info "     Job completed #{self.to_ruby_string} in #{execution_time} seconds."
         rescue
@@ -126,14 +126,6 @@ module RabbitJobs
       def perform_async(*args)
         RJ::Publisher.publish_to(@rj_queue || :jobs, self, *args)
       end
-
-      def serialize_job(*params)
-        {
-          'class' => self.to_s,
-          'opts' => {'created_at' => Time.now.to_i},
-          'params' => params
-        }.to_json
-      end
     end
 
     def self.parse(payload)
@@ -150,6 +142,14 @@ module RabbitJobs
       rescue
         [:error, $!, payload]
       end
+    end
+
+    def self.serialize(klass_name, *params)
+      {
+        'class' => klass_name.to_s,
+        'opts' => {'created_at' => Time.now.to_i},
+        'params' => params
+      }.to_json
     end
   end
 end

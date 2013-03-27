@@ -15,7 +15,7 @@ module RabbitJobs
       routing_key = routing_key.to_sym unless routing_key.is_a?(Symbol)
       raise ArgumentError.new("routing_key=#{routing_key}") unless RabbitJobs.config[:queues][routing_key]
 
-      payload = klass.serialize_job(*params)
+      payload = Job.serialize(klass, *params)
       direct_publish_to(routing_key, payload)
     end
 
