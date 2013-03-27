@@ -37,6 +37,7 @@ module RabbitJobs
         text    = "\n#{job.class}.perform(#{params_str})\n"
         text   += "\n#{error.inspect}\n"
         text   += "\nBacktrace:\n#{error.backtrace.join("\n")}" if error.backtrace
+        [subject, text]
       end
 
       def config_present?
