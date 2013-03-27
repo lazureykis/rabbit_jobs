@@ -22,7 +22,7 @@ module RabbitJobs
     def direct_publish_to(routing_key, payload, ex = {})
       check_connection
       begin
-        exchange_name = ex.delete(:name).to_s
+        exchange_name = (ex.delete(:name) rescue nil).to_s # rescue for frozen hash
         exchange_opts = Configuration::DEFAULT_MESSAGE_PARAMS.merge(ex || {})
         connection.default_channel.basic_publish(payload, exchange_name, routing_key, exchange_opts)
       rescue
