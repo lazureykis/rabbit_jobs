@@ -60,7 +60,7 @@ module RabbitJobs
 
       begin
         amqp_channel = amqp_connection.create_channel
-        amqp_channel.prefetch(1)
+        # amqp_channel.prefetch(1)
 
         queues.each do |routing_key|
           consume_queue(amqp_channel, routing_key)
@@ -118,9 +118,10 @@ module RabbitJobs
 
       queue.subscribe(ack: explicit_ack) do |delivery_info, properties, payload|
         if consume_message(delivery_info, properties, payload)
-          amqp_channel.ack(delivery_info.delivery_tag, false) if explicit_ack
+          amqp_channel.ack(delivery_info.delivery_tag) if explicit_ack
         else
-          amqp_channel.nack(delivery_info.delivery_tag, true) if explicit_ack
+          requeue = false
+          amqp_channel.nack(delivery_info.delivery_tag, requeue) if explicit_ack
         end
       end
     end

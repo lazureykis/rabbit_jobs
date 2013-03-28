@@ -10,7 +10,7 @@ module RabbitJobs
     end
 
     def main_loop(time)
-      while true
+      loop do
         sleep 1
         if time > 0
           time -= 1
