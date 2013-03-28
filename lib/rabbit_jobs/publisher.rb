@@ -20,6 +20,7 @@ module RabbitJobs
     end
 
     def direct_publish_to(routing_key, payload, ex = {})
+      ex = {name: ex.to_s} unless ex.is_a?(Hash)
       check_connection
       begin
         exchange_opts = Configuration::DEFAULT_MESSAGE_PARAMS.merge(ex || {})
