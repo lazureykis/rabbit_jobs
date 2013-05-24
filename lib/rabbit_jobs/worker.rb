@@ -60,7 +60,7 @@ module RabbitJobs
 
       begin
         amqp_channel = amqp_connection.create_channel
-        amqp_channel.prefetch(1)
+        # amqp_channel.prefetch(1)
 
         queues.each do |routing_key|
           consume_queue(amqp_channel, routing_key)
