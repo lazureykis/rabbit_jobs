@@ -66,7 +66,7 @@ module RabbitJobs
     end
 
     def check_connection
-      raise unless connection.connected?
+      raise "Disconnected from #{RJ.config.server}" unless connection.connected?
     end
   end
 end
