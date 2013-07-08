@@ -66,7 +66,12 @@ module RabbitJobs
     end
 
     def check_connection
-      raise "Disconnected from #{RJ.config.server}" unless connection.connected?
+      unless connection.connected?
+        connection.start if connection.status == :disconnected?
+        # require 'pry'
+        # binding.pry
+        raise "Disconnected from #{RJ.config.server}. Connection status: #{connection.try(:status).inspect}"
+      end
     end
   end
 end
