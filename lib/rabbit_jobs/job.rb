@@ -98,6 +98,7 @@ module RabbitJobs
         RabbitJobs.logger.warn error.message
         RabbitJobs.logger.warn(self.to_ruby_string)
         RabbitJobs.logger.warn _cleanup_backtrace(error.backtrace).join("\n")
+        Airbrake.notify(error, session: {args: self.to_ruby_string}) if defined?(Airbrake)
         RabbitJobs::ErrorMailer.report_error(self, error) rescue nil
       end
     end

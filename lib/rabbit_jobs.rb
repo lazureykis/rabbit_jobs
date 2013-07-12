@@ -78,7 +78,6 @@ module RabbitJobs
     }
     return true
   end
-
 end
 
 RJ = RabbitJobs

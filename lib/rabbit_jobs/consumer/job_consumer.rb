@@ -19,8 +19,23 @@ module RabbitJobs
         true
       end
 
-      def log_error(msg)
-        RJ.logger.error msg
+      def log_error(msg_or_exception, payload = nil)
+        if msg_or_exception.is_a?(String)
+          RJ.logger.error msg_or_exception
+        else
+          RJ.logger.error msg_or_exception.message
+          RJ.logger.error _cleanup_backtrace(msg_or_exception.backtrace).join("\n")
+        end
+      end
+
+      def log_airbrake(msg_or_exception, payload)
+        if defined?(Airbrake)
+          if msg_or_exception.is_a?(String)
+            Airbrake.notify(RuntimeError.new(msg_or_exception))
+          else
+            Airbrake.notify(msg_or_exception)
+          end
+        end
       end
 
       def report_error(error_type, *args)
@@ -33,8 +48,7 @@ module RabbitJobs
         when :error
           ex, payload = args
           log_error "Cannot initialize job."
-          log_error ex.message
-          log_error _cleanup_backtrace(ex.backtrace).join("\n")
+          log_error ex, payload
           log_error "Data received: #{payload.inspect}"
         end
       end
