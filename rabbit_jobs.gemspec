@@ -16,7 +16,7 @@ Gem::Specification.new do |gem|
   gem.require_paths = ["lib"]
   gem.version       = RabbitJobs::VERSION
 
-  gem.add_dependency "bunny", "0.9.0.rc2"
+  gem.add_dependency "bunny", "0.9.0.pre12"
   gem.add_dependency "rake"
   gem.add_dependency "rufus-scheduler", "~> 2.0"
   gem.add_dependency "rails", "~> 3.2"
