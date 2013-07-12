@@ -1,35 +1,48 @@
 # -*- encoding : utf-8 -*-
 module RabbitJobs
   class ErrorMailer
-    def self.enabled?
-      !!(
-        defined?(ActionMailer) && \
-        RabbitJobs.config.mail_errors_from && !RabbitJobs.config.mail_errors_from.empty? && \
-        RabbitJobs.config.mail_errors_to && !RabbitJobs.config.mail_errors_to.empty?
-      )
-    end
+    class << self
+      def enabled?
+        defined?(ActionMailer) && config_present?
+      end
 
-    def self.report_error(job, error = $!)
-      return unless enabled?
+      def send_letter(subject, body)
+        letter         = ActionMailer::Base.mail
+        letter.from    = RabbitJobs.config.mail_errors_from
+        letter.to      = RabbitJobs.config.mail_errors_to
+        letter.subject = subject
+        letter.body    = body
 
-      params ||= []
-
-      params_str = job.params == [] ? '' : job.params.map { |p| p.inspect }.join(', ')
-      subject = "RJ:Worker: #{error.class} on #{job.class}"
-      text    = "\n#{job.class}.perform(#{params_str})\n"
-      text   += "\n#{error.inspect}\n"
-      text   += "\nBacktrace:\n#{error.backtrace.join("\n")}" if error.backtrace
-
-      letter         = ActionMailer::Base.mail
-      letter.from    = RabbitJobs.config.mail_errors_from
-      letter.to      = RabbitJobs.config.mail_errors_to
-      letter.subject = subject
-      letter.body    = text
-
-      begin
         letter.deliver
-      rescue
-        RJ.logger.error [$!.message, $!.backtrace].flatten.join("\n")
+      end
+
+      def report_error(job, error = $!)
+        return unless enabled?
+
+        begin
+          subject, text = build_error_message(job, error)
+          send_letter(subject, text)
+        rescue
+          RabbitJobs.logger.error [$!.message, $!.backtrace].flatten.join("\n")
+        end
+      end
+
+      private
+
+      def build_error_message(job, error)
+        params = job.params || []
+
+        params_str = params.map { |p| p.inspect }.join(', ')
+        subject = "RJ:Worker: #{error.class} on #{job.class}"
+        text    = "\n#{job.class}.perform(#{params_str})\n"
+        text   += "\n#{error.inspect}\n"
+        text   += "\nBacktrace:\n#{error.backtrace.join("\n")}" if error.backtrace
+        [subject, text]
+      end
+
+      def config_present?
+        config = RabbitJobs.config
+        config.mail_errors_from.present? && config.mail_errors_to.present?
       end
     end
   end

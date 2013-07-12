@@ -2,12 +2,14 @@
 
 class TestJob
   include RJ::Job
+  def perform
+  end
 end
 
 class PrintTimeJob
   include RJ::Job
 
-  def self.perform(time)
+  def perform(time)
     puts "Running job queued at #{time}"
   end
 end
@@ -15,7 +17,7 @@ end
 class JobWithExpire
   include RJ::Job
   expires_in 60*60 # expires in 1 hour
-  def self.perform
+  def perform
 
   end
 end
@@ -23,7 +25,7 @@ end
 class ExpiredJob
   include RJ::Job
 
-  def self.perform
+  def perform
 
   end
 end
@@ -31,10 +33,10 @@ end
 class JobWithPublish
   include RJ::Job
 
-  def self.perform(param = 0)
+  def perform(param = 0)
     if param < 5
       puts "publishing job #{param}"
-      RJ.publish JobWithPublish, param + 1
+      RJ.publish_to :rspec_durable_queue, JobWithPublish, param + 1
     else
       puts "processing job #{param}"
     end
@@ -53,7 +55,7 @@ class JobWithErrorHook
     puts 'last hook'
   end
 
-  def self.perform
+  def perform
     raise "Job raised an error at #{Time.now}"
   end
 end
@@ -63,5 +65,10 @@ class JobWithArgsArray
 
   def perform(first_param, *other_args)
     puts "#{self.class.name}.perform called with first_param: #{first_param.inspect} and other_args: #{other_args.inspect}"
+  end
+end
+
+class TestConsumer
+  def process_message *args
   end
 end

@@ -1,19 +1,20 @@
 # -*- encoding : utf-8 -*-
-
-require 'rufus/scheduler'
-require 'thwait'
-require 'yaml'
-
 module RabbitJobs
   class Scheduler
+    include MainLoop
 
-    attr_accessor :pidfile, :background, :schedule, :process_name
+    attr_reader :schedule, :process_name
+    attr_writer :process_name
+
+    def schedule=(value)
+      @schedule = HashWithIndifferentAccess.new(value)
+    end
 
     def load_default_schedule
       if defined?(Rails)
         file = Rails.root.join('config/schedule.yml')
         if file.file?
-          @schedule = YAML.load_file(file)
+          @schedule = HashWithIndifferentAccess.new(YAML.load_file(file))
         end
       end
     end
@@ -31,21 +32,7 @@ module RabbitJobs
         # job should be scheduled regardless of what ENV['RAILS_ENV'] is set
         # to.
         if config['rails_env'].nil? || rails_env_matches?(config)
-          interval_defined = false
-          interval_types = %w{cron every}
-          interval_types.each do |interval_type|
-            if !config[interval_type].nil? && config[interval_type].length > 0
-              RJ.logger.info "queueing #{config['class']} (#{name})"
-              rufus_scheduler.send(interval_type, config[interval_type]) do
-                publish_from_config(config)
-              end
-              interval_defined = true
-              break
-            end
-          end
-          unless interval_defined
-            RJ.logger.warn "no #{interval_types.join(' / ')} found for #{config['class']} (#{name}) - skipping"
-          end
+          setup_job_schedule(name, config)
         end
       end
     end
@@ -57,20 +44,18 @@ module RabbitJobs
 
     # Publish a job based on a config hash
     def publish_from_config(config)
-      args = config['args'] || config[:args] || []
-      klass_name = config['class'] || config[:class]
-      params = args.is_a?(Hash) ? [args] : Array(args)
-      queue = config['queue'] || config[:queue] || RJ.config.routing_keys.first
+      args = config[:args] || []
+      klass_name = config[:class]
+      params = [args].flatten
 
-      RJ.logger.info "publishing #{config} at #{Time.now}"
-      RJ.publish_to(queue, klass_name, *params)
+      RabbitJobs.logger.info "publishing #{config} at #{Time.now}"
+      RabbitJobs.publish_to(config[:queue], klass_name, *params)
     rescue
-      RJ.logger.warn "Failed to publish #{klass_name}:\n #{$!}\n params = #{params.inspect}"
-      RJ.logger.warn $!.inspect
+      RabbitJobs.logger.warn "Failed to publish #{klass_name}:\n #{$!}\n params = #{params.inspect}"
+      RabbitJobs.logger.warn $!.inspect
     end
 
     def rufus_scheduler
-      raise "Cannot start without eventmachine running." unless EM.reactor_running?
       @rufus_scheduler ||= Rufus::Scheduler.start_new
     end
 
@@ -89,73 +74,22 @@ module RabbitJobs
 
         $0 = self.process_name || "rj_scheduler"
 
-        processed_count = 0
-        RJ.run do
-          AmqpHelper.prepare_channel
+        RabbitJobs.logger.info "Started."
 
-          load_schedule!
+        load_schedule!
 
-          check_shutdown = Proc.new {
-            if @shutdown
-              RJ.stop
-              RJ.logger.info "Stopped."
-
-              File.delete(self.pidfile) if self.pidfile
-            end
-          }
-
-          if time > 0
-            EM.add_timer(time) do
-              self.shutdown
-            end
-          end
-
-          EM.add_periodic_timer(1) do
-            check_shutdown.call
-          end
-
-          RJ.logger.info "Started."
-        end
-      rescue => e
-        error = $!
-        if RJ.logger
-          begin
-            RJ.logger.error [error.message, error.backtrace].flatten.join("\n")
-          ensure
-            abort(error.message)
-          end
-        end
+        return main_loop(time)
+      rescue
+        log_daemon_error($!)
       end
 
       true
     end
 
-    def shutdown
-      RJ.logger.info "Stopping..."
-      @shutdown = true
-    end
-
     def startup
-      # prune_dead_workers
-      RabbitJobs::Util.check_pidfile(self.pidfile) if self.pidfile
-
-      if self.background
-        child_pid = fork
-        if child_pid
-          return false
-        else
-          # daemonize child process
-          Process.daemon(true)
-        end
-      end
-
       # Fix buffering so we can `rake rj:work > resque.log` and
       # get output from the child in there.
       $stdout.sync = true
-
-      if self.pidfile
-        File.open(self.pidfile, 'w') { |f| f << Process.pid }
-      end
 
       @shutdown = false
 
@@ -165,8 +99,20 @@ module RabbitJobs
       true
     end
 
-    def shutdown!
-      shutdown
+    def setup_job_schedule(name, config)
+      interval_defined = false
+      %w(cron every).each do |interval_type|
+        if config[interval_type].present?
+          RabbitJobs.logger.info "queueing #{config['class']} (#{name})"
+          rufus_scheduler.send(interval_type, config[interval_type], blocking: true) do
+            publish_from_config(config)
+          end
+          interval_defined = true
+        end
+      end
+      unless interval_defined
+        RabbitJobs.logger.warn "no #{interval_types.join(' / ')} found for #{config['class']} (#{name}) - skipping"
+      end
     end
   end
 end

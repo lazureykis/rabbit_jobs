@@ -6,9 +6,7 @@ describe RabbitJobs::Configuration do
     RabbitJobs.configure do |c|
       c.disable_error_log
 
-      c.url "amqp://somehost.lan"
-
-      c.prefix 'my_prefix'
+      c.server "amqp://somehost.lan"
 
       c.queue 'durable_queue', durable: true,  auto_delete: false, ack: true, arguments: {'x-ha-policy' => 'all'}
       c.queue 'fast_queue',    durable: false, auto_delete: true,  ack: false
@@ -16,20 +14,21 @@ describe RabbitJobs::Configuration do
 
     RabbitJobs.config.to_hash.should == {
       error_log: false,
-      url: "amqp://somehost.lan",
-      prefix: "my_prefix",
+      server: "amqp://somehost.lan",
       queues: {
-        "durable_queue" => {
-          durable: true,
+        durable_queue: {
           auto_delete: false,
+          exclusive: false,
+          durable: true,
           ack: true,
           arguments: {"x-ha-policy"=>"all"}
         },
-        "fast_queue" => {
-          durable: false,
+        fast_queue: {
           auto_delete: true,
+          exclusive: false,
+          durable: false,
           ack: false
-        },
+        }
       }
     }
   end
@@ -38,17 +37,18 @@ describe RabbitJobs::Configuration do
     RabbitJobs.config.load_file(File.expand_path('../../fixtures/config.yml', __FILE__))
 
     RabbitJobs.config.to_hash.should == {
-      url: "amqp://example.com/vhost",
-      prefix: "my_prefix",
+      server: "amqp://example.com/vhost",
       queues: {
-        "durable_queue" => {
+        durable_queue: {
           durable: true,
+          exclusive: false,
           auto_delete: false,
           ack: true,
           arguments: {"x-ha-policy"=>"all"}
         },
-        "fast_queue" => {
+        fast_queue: {
           durable: false,
+          exclusive: false,
           auto_delete: true,
           ack: false
         }
@@ -56,26 +56,17 @@ describe RabbitJobs::Configuration do
     }
   end
 
-  it 'use default config' do
+  it 'use default value for #server' do
     RabbitJobs.config.to_hash.should == {
       error_log: true,
-      url: "amqp://localhost/",
-      prefix: "rabbit_jobs",
-      queues: {
-        "default" => {
-          auto_delete: false,
-          ack: true,
-          durable: true
-        }
-      }
+      server: "amqp://localhost",
+      queues: {}
     }
   end
 
   it 'returns settings on some methods' do
     RabbitJobs.config.error_log == true
-    RabbitJobs.config.servers.should == ['amqp://localhost/']
+    RabbitJobs.config.server.should == 'amqp://localhost'
     RabbitJobs.config.routing_keys.should == []
-    RabbitJobs.config.prefix.should == 'rabbit_jobs'
-    RabbitJobs.config.queue_name('default').should == 'rabbit_jobs#default'
   end
 end

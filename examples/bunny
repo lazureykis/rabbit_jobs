@@ -1,0 +1,27 @@
+#!/usr/bin/env ruby
+# -*- encoding : utf-8 -*-
+
+require 'bunny'
+
+
+b = Bunny.new "amqp://localhost/bunny", heartbeat: 2
+b.start
+channel = b.create_channel
+# channel.confirm_select
+exchange = channel.default_exchange
+
+i = 0
+loop do
+  puts "publishing hello #{i}"
+  begin
+    exchange.publish("hello #{i}", routing_key: "hello")
+    # channel.wait_for_confirms
+  rescue Exception => e
+    puts e.message
+    puts e.backtrace.join("\r\n")
+  end
+  i += 1
+  sleep 1
+end
+
+b.stop

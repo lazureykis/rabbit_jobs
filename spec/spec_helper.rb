@@ -5,9 +5,10 @@ SimpleCov.start do
 end
 
 require 'rr'
+require 'timecop'
+require 'action_mailer'
 
 require 'rabbit_jobs'
-
 require 'fixtures/jobs'
 
 RSpec.configure do |config|
@@ -18,5 +19,13 @@ RSpec.configure do |config|
   config.before(:each) do
     # clear config options
     RabbitJobs.class_variable_set '@@configuration', nil
+  end
+
+  if ENV['CC_BUILD_ARTIFACTS']
+    # "-c -f p -f h -o #{ENV['CC_BUILD_ARTIFACTS']}/rspec_report.html"
+    config.out = File.open "#{ENV['CC_BUILD_ARTIFACTS']}/rspec_report.html", 'w'
+    # config.color_enabled = true
+    # config.formatter = :progress
+    config.formatter = :html
   end
 end

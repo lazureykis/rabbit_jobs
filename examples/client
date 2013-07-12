@@ -7,42 +7,28 @@ require File.expand_path('../../lib/rabbit_jobs', __FILE__)
 
 class MyCurrentJob
   include RJ::Job
-  def self.perform(count)
+  queue :failover_test
+  def perform(count)
   end
 end
 
 RJ.configure { |c|
   c.queue "failover_test"
-  c.server "amqp://localhost/"
+  c.server "amqp://localhost/rj"
 }
 
-RJ.logger = Logger.new($stdout)
-
-RJ.run {
-  RJ.publish(MyCurrentJob) {
-    puts 'published first message'
-    RJ.stop
-  }
-
-  # EM.add_timer(5) {
-  #   RJ.publish(MyCurrentJob) {
-  #     puts 'published second message'
-  #     RJ.stop
-  #   }
-  # }
-}
-
-
-1000.times {
-  RJ.run do
-    count = 10000
-    published = 0
-    count.times {
-      RJ.publish_to(:default, MyCurrentJob) {
-        published += 1
-        RJ.stop if published >= count
-      }
-    }
+i = 0
+loop do
+  puts "publishing job #{i}"
+  begin
+    # RJ.publish_to(:failover_test, MyCurrentJob, i)
+    MyCurrentJob.perform_async(i)
+  rescue Exception => e
+    # RJ::Publisher.amqp_connection.stop
+    puts e.message
+    puts e.backtrace.join("\r\n")
+    raise $!
   end
-  puts 'returned from em'
-}
+  i += 1
+  sleep 1
+end

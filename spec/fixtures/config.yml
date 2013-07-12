@@ -1,6 +1,5 @@
 rabbit_jobs:
-  url: amqp://example.com/vhost
-  prefix: 'rabbit_jobs'
+  server: amqp://example.com/vhost
   queues:
     durable_queue:
       durable: true

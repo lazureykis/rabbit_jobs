@@ -10,15 +10,14 @@ Gem::Specification.new do |gem|
   gem.homepage      = ""
   gem.date          = Time.now.strftime('%Y-%m-%d')
 
-  gem.executables   = %w(rj_worker rj_scheduler)
   gem.files         = `git ls-files`.split("\n")
   gem.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
   gem.name          = "rabbit_jobs"
   gem.require_paths = ["lib"]
   gem.version       = RabbitJobs::VERSION
 
-  gem.add_dependency "amqp", "~> 0.9"
+  gem.add_dependency "bunny", "0.9.0.rc2"
   gem.add_dependency "rake"
   gem.add_dependency "rufus-scheduler", "~> 2.0"
-  gem.add_dependency "rails", ">= 3.0"
+  gem.add_dependency "rails", "~> 3.2"
 end

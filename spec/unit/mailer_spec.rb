@@ -1,6 +1,5 @@
 # -*- encoding : utf-8 -*-
 require 'spec_helper'
-require 'action_mailer'
 
 describe RabbitJobs::ErrorMailer do
   describe '#enabled?' do

@@ -1,0 +1,23 @@
+#!/usr/bin/env ruby
+# -*- encoding : utf-8 -*-
+
+require 'bunny'
+
+# RJ.configure { |c|
+#   c.queue "failover_test"
+#   c.server "amqp://localhost/bunny"
+# }
+
+
+b = Bunny.new "amqp://localhost/bunny"
+b.start
+channel = b.create_channel
+queue = channel.queue("hello", durable: true)
+
+queue.subscribe do |delivery_info, properties, payload|
+  puts "got #{payload}"
+end
+
+loop do
+  sleep 1
+end

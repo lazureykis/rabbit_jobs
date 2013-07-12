@@ -2,45 +2,28 @@
 
 module RabbitJobs
   class Worker
-    attr_accessor :pidfile, :background, :process_name, :worker_pid
+    include MainLoop
 
-    attr_accessor :_connection, :_channel
+    attr_accessor :process_name
+    attr_reader :consumer
+
+    def consumer=(value)
+      raise ArgumentError.new("value=#{value.inspect}") unless value.respond_to?(:process_message)
+      @consumer = value
+    end
 
     def amqp_connection
-      self._connection ||= AmqpHelper.prepare_connection(self._connection)
+      Thread.current[:rj_worker_connection] ||= AmqpHelper.prepare_connection
     end
 
-    def amqp_channel
-      self._channel ||= AmqpHelper.create_channel(self._connection)
-    end
-
-    def process_message(metadata, payload)
-      job = RJ::Job.parse(payload)
-
-      if job.is_a?(Symbol)
-        # case @job
-        # when :not_found
-        # when :parsing_error
-        # when :error
-        # end
-      else
-        if job.expired?
-          RJ.logger.warn "Job expired: #{job.to_ruby_string}"
-          false
-        else
-          job.run_perform
-        end
-      end
-
-      true
-    end
-
-    def queue_name(routing_key)
-      RJ.config.queue_name(routing_key)
+    def self.cleanup
+      conn = Thread.current[:rj_worker_connection]
+      conn.close if conn && conn.status != :not_connected
+      Thread.current[:rj_worker_connection] = nil
     end
 
     def queue_params(routing_key)
-      RJ.config[:queues][routing_key]
+      RJ.config[:queues][routing_key.to_sym]
     end
 
     # Workers should be initialized with an array of string queue
@@ -55,111 +38,48 @@ module RabbitJobs
     # in alphabetical order. Queues can be dynamically added or
     # removed without needing to restart workers using this method.
     def initialize(*queues)
-      RJ.config.init_default_queue
       @queues = queues.map { |queue| queue.to_s.strip }.flatten.uniq
       if @queues == ['*'] || @queues.empty?
         @queues = RabbitJobs.config.routing_keys
       end
+      raise "Cannot initialize worker without queues." if @queues.empty?
     end
 
     def queues
-      @queues || [:default]
+      @queues || []
     end
 
     # Subscribes to queue and working on jobs
-    def work(time = 0)
+    def work(time = -1)
       return false unless startup
+      @consumer ||= RJ::Consumer::JobConsumer.new
 
       $0 = self.process_name || "rj_worker (#{queues.join(', ')})"
 
-      processed_count = 0
+      @processed_count = 0
 
       begin
-        RJ.run do
-          check_shutdown = Proc.new {
-            if @shutdown
-              RJ.stop
-              RJ.logger.info "Processed jobs: #{processed_count}."
-              RJ.logger.info "Stopped."
+        amqp_channel = amqp_connection.create_channel
+        # amqp_channel.prefetch(1)
 
-              File.delete(self.pidfile) if self.pidfile && File.exists?(self.pidfile)
-            end
-          }
-
-          amqp_connection
-          amqp_channel.prefetch(1)
-
-          queues.each do |routing_key|
-            routing_key = routing_key.to_sym
-
-            amqp_channel.queue(queue_name(routing_key), queue_params(routing_key)) { |queue, declare_ok|
-              explicit_ack = !!queue_params(routing_key)[:ack]
-
-              RJ.logger.info "Subscribing to #{queue_name(routing_key)}"
-              queue.subscribe(ack: explicit_ack) do |metadata, payload|
-                begin
-                  processed_count += 1 if process_message(metadata, payload)
-                rescue
-                  RJ.logger.warn "process_message failed. payload: #{payload.inspect}"
-                  RJ.logger.warn $!.inspect
-                  $!.backtrace.each {|l| RJ.logger.warn l}
-                end
-
-                metadata.ack if explicit_ack
-                check_shutdown.call
-              end
-            }
-          end
-
-          if time > 0
-            # for debugging
-            EM.add_timer(time) do
-              self.shutdown
-            end
-          end
-
-          EM.add_periodic_timer(1) do
-            check_shutdown.call
-          end
-
-          RJ.logger.info "Started."
+        queues.each do |routing_key|
+          consume_queue(amqp_channel, routing_key)
         end
+
+        RJ.logger.info "Started."
+
+        return main_loop(time) {
+          RJ.logger.info "Processed jobs: #{@processed_count}."
+        }
       rescue
-        error = $!
-        if RJ.logger
-          begin
-            RJ.logger.error [error.message, error.backtrace].flatten.join("\n")
-          ensure
-            abort(error.message)
-          end
-        end
+        log_daemon_error($!)
       end
 
       true
     end
 
-    def shutdown
-      @shutdown = true
-    end
-
     def startup
-      # prune_dead_workers
-      RabbitJobs::Util.check_pidfile(self.pidfile) if self.pidfile
-
-      if self.background
-        return false if self.worker_pid = fork
-
-        # daemonize child process
-        Process.daemon(true)
-      end
-
       count = RJ._run_after_fork_callbacks
-
-      self.worker_pid ||= Process.pid
-
-      if self.pidfile
-        File.open(self.pidfile, 'w') { |f| f << Process.pid }
-      end
 
       $stdout.sync = true
 
@@ -171,8 +91,39 @@ module RabbitJobs
       true
     end
 
-    def shutdown!
-      shutdown
+    private
+
+    def consume_message(delivery_info, properties, payload)
+      if RJ.run_before_process_message_callbacks
+        begin
+          @consumer.process_message(delivery_info, properties, payload)
+          @processed_count += 1
+        rescue
+          RJ.logger.warn "process_message failed. payload: #{payload.inspect}"
+          RJ.logger.warn $!.inspect
+          $!.backtrace.each {|l| RJ.logger.warn l}
+        end
+        true
+      else
+        RJ.logger.warn "before_process_message hook failed, requeuing payload: #{payload.inspect}"
+        false
+      end
+    end
+
+    def consume_queue(amqp_channel, routing_key)
+      RJ.logger.info "Subscribing to #{routing_key}"
+      routing_key = routing_key.to_sym
+      queue = amqp_channel.queue(routing_key, queue_params(routing_key))
+      explicit_ack = !!queue_params(routing_key)[:ack]
+
+      queue.subscribe(ack: explicit_ack) do |delivery_info, properties, payload|
+        if consume_message(delivery_info, properties, payload)
+          amqp_channel.ack(delivery_info.delivery_tag) if explicit_ack
+        else
+          requeue = false
+          amqp_channel.nack(delivery_info.delivery_tag, requeue) if explicit_ack
+        end
+      end
     end
   end
 end

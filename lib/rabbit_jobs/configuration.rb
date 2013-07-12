@@ -1,7 +1,4 @@
 # -*- encoding : utf-8 -*-
-require 'yaml'
-require 'uri'
-
 module RabbitJobs
 
   extend self
@@ -28,7 +25,7 @@ module RabbitJobs
 
     unless @@configuration
       self.configure do |c|
-        c.prefix 'rabbit_jobs'
+        c.server "amqp://localhost"
       end
     end
 
@@ -63,9 +60,7 @@ module RabbitJobs
     def initialize
       @data = {
         error_log: true,
-        workers: {},
-        servers: [],
-        prefix: 'rabbit_jobs',
+        server: 'amqp://localhost',
         queues: {}
       }
     end
@@ -98,29 +93,9 @@ module RabbitJobs
       @data[:error_log] = false
     end
 
-    def servers(*value)
-      unless value.empty?
-        @data[:servers] = value.map(&:to_s).map(&:strip).keep_if{|url|!url.empty?}.map {|url|
-          normalize_url(url)
-        }
-      end
-      @data[:servers]
-    end
-
     def server(value = nil)
-      raise unless value && !value.to_s.empty?
-      value = normalize_url(value.to_s.strip)
-      @data[:servers] ||= []
-      @data[:servers] << value unless @data[:servers].include?(value)
-    end
-
-    def prefix(value = nil)
-      if value
-        raise ArgumentError unless value.is_a?(String) && value != ""
-        @data[:prefix] = value.downcase
-      else
-        @data[:prefix]
-      end
+      @data[:server] = value.to_s.strip if value && value.length > 0
+      @data[:server]
     end
 
     def queue(name, params = {})
@@ -136,45 +111,8 @@ module RabbitJobs
       end
     end
 
-    def workers
-      @data[:workers] ||= {}
-    end
-
-    def worker(name, params = {})
-      raise ArgumentError.new("name is #{name.inspect}") unless name && name.is_a?(String) && name != ""
-      raise ArgumentError.new("params is #{params.inspect}") unless params && params.is_a?(Hash)
-      raise ArgumentError.new("params should have :instances and :queues keys.") unless params[:instances] && params[:queues]
-
-      name = name.downcase.to_sym
-
-      @data[:workers] ||= {}
-      if @data[:workers][name]
-        @data[:workers][name].merge!(params)
-      else
-        @data[:workers][name] = params
-      end
-    end
-
     def routing_keys
       @data[:queues].keys
-    end
-
-    def init_default_queue
-      queue('default', DEFAULT_QUEUE_PARAMS) if @data[:queues].empty?
-    end
-
-    def worker_queues
-      @data[:workers].values.map{|w| w[:queues].to_s.split(' ')}.flatten.uniq.sort
-    end
-
-    def default_queue
-      queue('default', DEFAULT_QUEUE_PARAMS) if @data[:queues].empty?
-      worker_queues.first
-    end
-
-    def queue_name(routing_key)
-      routing_key = routing_key.to_sym
-      @data[:queues][routing_key][:ignore_prefix] ? routing_key : [@data[:prefix], routing_key].join('#')
     end
 
     def load_file(filename)
@@ -186,34 +124,23 @@ module RabbitJobs
     end
 
     def convert_yaml_config(yaml)
-      if yaml['rabbit_jobs']
-        convert_yaml_config(yaml['rabbit_jobs'])
-      elsif defined?(Rails) && yaml[Rails.env.to_s]
-        convert_yaml_config(yaml[Rails.env.to_s])
-      else
-        @data = {prefix: nil, queues: {}}
-        %w(prefix mail_errors_to mail_errors_from).each do |m|
-          self.send(m, yaml[m])
-        end
-        yaml['servers'].split(",").each do |value|
-          server normalize_url(value)
-        end
-        yaml['queues'].each do |name, params|
-          queue name, symbolize_keys!(params) || {}
-        end
+      yaml = parse_environment(yaml)
 
-        yaml['workers'].each do |name, params|
-          worker name, symbolize_keys!(params) || {}
-        end
+      @data = {queues: {}}
+      %w(server mail_errors_to mail_errors_from).each do |m|
+        self.send(m, yaml[m])
+      end
+      yaml['queues'].each do |name, params|
+        queue name, symbolize_keys!(params) || {}
       end
     end
 
     private
 
-    def normalize_url(url_string)
-      uri = URI.parse(url_string)
-      uri.path = "" if uri.path.to_s == "/"
-      uri.to_s
+    def parse_environment(yaml)
+      yaml['rabbit_jobs'] ||
+      (defined?(Rails) && yaml[Rails.env.to_s]) ||
+      yaml
     end
   end
 end
