@@ -13,7 +13,7 @@ module RabbitJobs
     end
 
     def amqp_connection
-      Thread.current[:rj_worker_connection] ||= AmqpHelper.prepare_connection
+      Thread.current[:rj_worker_connection] ||= Bunny.new(RabbitJobs.config.server, automatically_recover: false).start
     end
 
     def self.cleanup
@@ -113,7 +113,9 @@ module RabbitJobs
     def consume_queue(amqp_channel, routing_key)
       RJ.logger.info "Subscribing to #{routing_key}"
       routing_key = routing_key.to_sym
+
       queue = amqp_channel.queue(routing_key, queue_params(routing_key))
+
       explicit_ack = !!queue_params(routing_key)[:ack]
 
       queue.subscribe(ack: explicit_ack) do |delivery_info, properties, payload|
