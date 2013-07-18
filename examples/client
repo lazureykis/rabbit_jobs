@@ -7,28 +7,38 @@ require File.expand_path('../../lib/rabbit_jobs', __FILE__)
 
 class MyCurrentJob
   include RJ::Job
-  queue :failover_test
+  queue :mandarin
   def perform(count)
   end
 end
 
 RJ.configure { |c|
-  c.queue "failover_test"
+  c.queue "mandarin", durable: true, auto_delete: false, ack: true, arguments: {'x-ha-policy' => 'all'}
   c.server "amqp://localhost/rj"
 }
+
+shutdown = false
+trap('INT') do
+  shutdown = true
+end
 
 i = 0
 loop do
   puts "publishing job #{i}"
   begin
-    # RJ.publish_to(:failover_test, MyCurrentJob, i)
+    # RJ.publish_to(:mandarin, MyCurrentJob, i)
     MyCurrentJob.perform_async(i)
   rescue Exception => e
-    # RJ::Publisher.amqp_connection.stop
     puts e.message
     puts e.backtrace.join("\r\n")
-    raise $!
   end
+
+  if shutdown
+    puts "closing connection."
+    RJ::Publisher.send(:connection).stop
+    break
+  end
+
   i += 1
   sleep 1
 end

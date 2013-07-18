@@ -9,9 +9,10 @@ require 'bunny'
 # }
 
 
-b = Bunny.new "amqp://localhost/bunny"
+b = Bunny.new "amqp://localhost/bunny", heartbeat: 2, threaded: true, automatically_recover: true
 b.start
 channel = b.create_channel
+channel.prefetch(1)
 queue = channel.queue("hello", durable: true)
 
 queue.subscribe do |delivery_info, properties, payload|
@@ -19,5 +20,5 @@ queue.subscribe do |delivery_info, properties, payload|
 end
 
 loop do
-  sleep 1
+  sleep 0.1
 end

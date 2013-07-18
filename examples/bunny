@@ -3,24 +3,33 @@
 
 require 'bunny'
 
+confirm = true
+confirm = false
 
-b = Bunny.new "amqp://localhost/bunny", heartbeat: 2
+b = Bunny.new "amqp://localhost/bunny", heartbeat: 2, threaded: true, automatically_recover: true
 b.start
 channel = b.create_channel
-# channel.confirm_select
+# channel.confirm_select if confirm
 exchange = channel.default_exchange
 
 i = 0
 loop do
-  puts "publishing hello #{i}"
+  # puts "publishing hello #{i}"
   begin
-    exchange.publish("hello #{i}", routing_key: "hello")
-    # channel.wait_for_confirms
+    # puts "connected? #{b.connected?.inspect}, status: #{b.status.inspect}"
+    puts "publishing #{i}"
+    if exchange.publish("hello #{i}", routing_key: "hello").channel.connection.connected?
+      puts "published  #{i}"
+    else
+      puts "cannot publish #{i}"
+    end
+    # channel.wait_for_confirms if confirm
   rescue Exception => e
     puts e.message
     puts e.backtrace.join("\r\n")
   end
   i += 1
+  puts
   sleep 1
 end
 
