@@ -21,6 +21,7 @@ module RabbitJobs
 
         if @shutdown
           RabbitJobs.logger.info "Stopping."
+          amqp_connection.stop
           yield if block_given?
           return true
         end
