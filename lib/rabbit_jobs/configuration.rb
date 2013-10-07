@@ -69,6 +69,14 @@ module RabbitJobs
       @data[name]
     end
 
+    def default_queue(value = nil)
+      if value
+        @default_queue = value.to_sym
+      else
+        @default_queue || RJ.config[:queues].keys.first || :jobs
+      end
+    end
+
     def mail_errors_to(email = nil)
       if email
         @data[:mail_errors_to] = email
@@ -127,7 +135,7 @@ module RabbitJobs
       yaml = parse_environment(yaml)
 
       @data = {queues: {}}
-      %w(server mail_errors_to mail_errors_from).each do |m|
+      %w(server mail_errors_to mail_errors_from default_queue).each do |m|
         self.send(m, yaml[m])
       end
       yaml['queues'].each do |name, params|

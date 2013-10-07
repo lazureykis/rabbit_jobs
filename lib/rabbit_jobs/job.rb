@@ -125,7 +125,7 @@ module RabbitJobs
       end
 
       def perform_async(*args)
-        RJ::Publisher.publish_to(@rj_queue || :jobs, self, *args)
+        RJ::Publisher.publish_to(@rj_queue || RJ.config.default_queue, self, *args)
       end
 
       def perform(*params)
