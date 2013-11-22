@@ -96,7 +96,7 @@ module RabbitJobs
 
       def log_job_error(error)
         RabbitJobs.logger.error(short_message: "Job processed [error]",
-          _job: self.to_ruby_string, full_message: _cleanup_backtrace(error.backtrace).join("\r\n"))
+          _job: self.to_ruby_string, _error: error.message, _exception: error.class, full_message: _cleanup_backtrace(error.backtrace).join("\r\n"))
 
         Airbrake.notify(error, session: {args: self.to_ruby_string}) if defined?(Airbrake)
         RabbitJobs::ErrorMailer.report_error(self, error) rescue nil

@@ -99,9 +99,8 @@ module RabbitJobs
           @consumer.process_message(delivery_info, properties, payload)
           @processed_count += 1
         rescue
-          RJ.logger.warn "process_message failed. payload: #{payload.inspect}"
-          RJ.logger.warn $!.inspect
-          $!.backtrace.each {|l| RJ.logger.warn l}
+          RabbitJobs.logger.error(short_message: "Message process error",
+            _error: $!.message, _exception: $!.class, full_message: _cleanup_backtrace($!.backtrace).join("\r\n"))
         end
         true
       else
