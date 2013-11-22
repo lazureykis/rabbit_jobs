@@ -1,4 +1,6 @@
 # -*- encoding : utf-8 -*-
+require 'benchmark'
+
 module RabbitJobs
   module Job
     include RabbitJobs::Helpers
@@ -16,11 +18,9 @@ module RabbitJobs
 
       def run_perform
         begin
-          start_time = Time.now
-          RabbitJobs.logger.info "Started to perform #{self.to_ruby_string}"
-          perform(*params)
-          execution_time = Time.now - start_time
-          RabbitJobs.logger.info "     Job completed #{self.to_ruby_string} in #{execution_time} seconds."
+          ret = nil
+          execution_time = Benchmark.measure { ret = perform(*params) }
+          RabbitJobs.logger.info short_message: "Job processed [ok]", _job: self.to_ruby_string, _execution_time: execution_time.to_s.strip
         rescue
           log_job_error($!)
           run_on_error_hooks($!)
@@ -95,9 +95,9 @@ module RabbitJobs
       end
 
       def log_job_error(error)
-        RabbitJobs.logger.warn error.message
-        RabbitJobs.logger.warn(self.to_ruby_string)
-        RabbitJobs.logger.warn _cleanup_backtrace(error.backtrace).join("\n")
+        RabbitJobs.logger.error(short_message: "Job processed [error]",
+          _job: self.to_ruby_string, full_message: _cleanup_backtrace(error.backtrace).join("\r\n"))
+
         Airbrake.notify(error, session: {args: self.to_ruby_string}) if defined?(Airbrake)
         RabbitJobs::ErrorMailer.report_error(self, error) rescue nil
       end

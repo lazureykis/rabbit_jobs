@@ -52,7 +52,7 @@ module RabbitJobs
       RabbitJobs.publish_to(config[:queue], klass_name, *params)
     rescue
       RabbitJobs.logger.warn "Failed to publish #{klass_name}:\n #{$!}\n params = #{params.inspect}"
-      RabbitJobs.logger.warn $!.inspect
+      RabbitJobs.logger.error $!
     end
 
     def rufus_scheduler

@@ -28,8 +28,7 @@ module RabbitJobs
           raise "Disconnected from #{RJ.config.server}. Connection status: #{connection.try(:status).inspect}"
         end
       rescue
-        RabbitJobs.logger.warn $!.message
-        RabbitJobs.logger.warn $!.backtrace.join("\n")
+        RabbitJobs.logger.error $!.message
         raise $!
       end
 
