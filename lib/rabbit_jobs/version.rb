@@ -1,5 +1,5 @@
 # -*- encoding : utf-8 -*-
 
 module RabbitJobs
-  VERSION = "0.8.19"
+  VERSION = "0.8.20"
 end

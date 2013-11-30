@@ -99,8 +99,8 @@ module RabbitJobs
           @consumer.process_message(delivery_info, properties, payload)
           @processed_count += 1
         rescue
-          RabbitJobs.logger.error(short_message: "Message process error",
-            _error: $!.message, _exception: $!.class, full_message: _cleanup_backtrace($!.backtrace).join("\r\n"))
+          RabbitJobs.logger.error(short_message: $!.message,
+            _payload: payload, _exception: $!.class, full_message: _cleanup_backtrace($!.backtrace).join("\r\n"))
         end
         true
       else
