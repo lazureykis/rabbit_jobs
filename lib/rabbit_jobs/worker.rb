@@ -94,7 +94,7 @@ module RabbitJobs
     private
 
     def consume_message(delivery_info, properties, payload)
-      if RJ.run_before_process_message_callbacks
+      if (RJ.run_before_process_message_callbacks rescue nil)
         begin
           @consumer.process_message(delivery_info, properties, payload)
           @processed_count += 1
