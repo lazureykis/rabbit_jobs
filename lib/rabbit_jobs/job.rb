@@ -20,7 +20,7 @@ module RabbitJobs
         begin
           ret = nil
           execution_time = Benchmark.measure { ret = perform(*params) }
-          RabbitJobs.logger.info short_message: "Job processed [ok]", _job: self.to_ruby_string, _execution_time: execution_time.to_s.strip
+          RabbitJobs.logger.info short_message: self.to_ruby_string, _execution_time: execution_time.to_s.strip
         rescue
           log_job_error($!)
           run_on_error_hooks($!)
@@ -95,8 +95,8 @@ module RabbitJobs
       end
 
       def log_job_error(error)
-        RabbitJobs.logger.error(short_message: "Job processed [error]",
-          _job: self.to_ruby_string, _error: error.message, _exception: error.class, full_message: _cleanup_backtrace(error.backtrace).join("\r\n"))
+        RabbitJobs.logger.error(short_message: error.message,
+          _job: self.to_ruby_string, _exception: error.class, full_message: error.backtrace.join("\r\n"))
 
         Airbrake.notify(error, session: {args: self.to_ruby_string}) if defined?(Airbrake)
       end
@@ -112,14 +112,14 @@ module RabbitJobs
 
       def on_error(*hooks)
         hooks.each do |proc_or_symbol|
-          raise ArgumentError unless proc_or_symbol && ( proc_or_symbol.is_a?(Proc) || proc_or_symbol.is_a?(Symbol) )
+          raise ArgumentError.new("Pass proc or symbol to on_error hook") unless proc_or_symbol && ( proc_or_symbol.is_a?(Proc) || proc_or_symbol.is_a?(Symbol) )
           @rj_on_error_hooks ||= []
           @rj_on_error_hooks << proc_or_symbol
         end
       end
 
       def queue(routing_key)
-        raise ArgumentError unless routing_key.present?
+        raise ArgumentError.new("routing_key is nil") unless routing_key.present?
         @rj_queue = routing_key.to_sym
       end
 

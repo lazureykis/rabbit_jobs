@@ -100,7 +100,7 @@ module RabbitJobs
           @processed_count += 1
         rescue
           RabbitJobs.logger.error(short_message: $!.message,
-            _payload: payload, _exception: $!.class, full_message: _cleanup_backtrace($!.backtrace).join("\r\n"))
+            _payload: payload, _exception: $!.class, full_message: $!.backtrace.join("\r\n"))
         end
         true
       else

@@ -23,8 +23,7 @@ module RabbitJobs
         if msg_or_exception.is_a?(String)
           RJ.logger.error msg_or_exception
         else
-          RJ.logger.error msg_or_exception.message
-          RJ.logger.error _cleanup_backtrace(msg_or_exception.backtrace).join("\n")
+          RJ.logger.error msg_or_exception
         end
       end
 
