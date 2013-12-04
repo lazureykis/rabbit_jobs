@@ -31,7 +31,7 @@ module RabbitJobs
     def log_daemon_error(error)
       if RabbitJobs.logger
         begin
-          RabbitJobs.logger.error [error.message, error.backtrace].flatten.join("\n")
+          RabbitJobs.logger.fatal error
         ensure
           abort(error.message)
         end
