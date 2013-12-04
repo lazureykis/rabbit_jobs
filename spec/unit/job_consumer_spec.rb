@@ -34,13 +34,6 @@ describe RabbitJobs::Consumer::JobConsumer do
     end
   end
 
-  describe '#log_error' do
-    it 'logs error with RJ.logger' do
-      mock(RJ.logger).error("hello")
-      consumer.log_error 'hello'
-    end
-  end
-
   describe '#report_error' do
     it "accepts error type :not_found" do
       lambda { consumer.report_error(:not_found, 'klass_name') }.should_not raise_error

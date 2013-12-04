@@ -19,14 +19,6 @@ module RabbitJobs
         true
       end
 
-      def log_error(msg_or_exception, payload = nil)
-        if msg_or_exception.is_a?(String)
-          RJ.logger.error msg_or_exception
-        else
-          RJ.logger.error msg_or_exception
-        end
-      end
-
       def log_airbrake(msg_or_exception, payload)
         if defined?(Airbrake)
           if msg_or_exception.is_a?(String)
@@ -40,15 +32,12 @@ module RabbitJobs
       def report_error(error_type, *args)
         case error_type
         when :not_found
-          log_error "Cannot find job class '#{args.first}'"
+          RJ.logger.error "Cannot find job class '#{args.first}'"
         when :parsing_error
-          log_error "Cannot initialize job. Json parsing error."
-          log_error "Data received: #{args.first.inspect}"
+          RJ.logger.error "Cannot initialize job. Json parsing error. Data received: #{args.first.inspect}"
         when :error
           ex, payload = args
-          log_error "Cannot initialize job."
-          log_error ex, payload
-          log_error "Data received: #{payload.inspect}"
+          RJ.logger.error short_message: ex.message, full_message: ex.backtrace, _payload: payload.inspect
         end
       end
     end
