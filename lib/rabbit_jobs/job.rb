@@ -35,13 +35,17 @@ module RabbitJobs
               proc = self.method(proc_or_symbol)
             end
 
-            case proc.arity
-            when 0
-              proc.call()
-            when 1
-              proc.call(error)
-            else
-              proc.call(error, *params)
+            begin
+              case proc.arity
+              when 0
+                proc.call()
+              when 1
+                proc.call(error)
+              else
+                proc.call(error, *params)
+              end
+            rescue
+              RJ.logger.error($!)
             end
           end
         end
