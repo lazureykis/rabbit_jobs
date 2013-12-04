@@ -77,22 +77,6 @@ module RabbitJobs
       end
     end
 
-    def mail_errors_to(email = nil)
-      if email
-        @data[:mail_errors_to] = email
-      else
-        @data[:mail_errors_to]
-      end
-    end
-
-    def mail_errors_from(email = nil)
-      if email
-        @data[:mail_errors_from] = email
-      else
-        @data[:mail_errors_from]
-      end
-    end
-
     def error_log
       @data[:error_log]
     end
@@ -135,7 +119,7 @@ module RabbitJobs
       yaml = parse_environment(yaml)
 
       @data = {queues: {}}
-      %w(server mail_errors_to mail_errors_from default_queue).each do |m|
+      %w(server default_queue).each do |m|
         self.send(m, yaml[m])
       end
       yaml['queues'].each do |name, params|

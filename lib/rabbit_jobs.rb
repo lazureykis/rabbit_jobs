@@ -15,7 +15,6 @@ require 'rabbit_jobs/version'
 
 require 'rabbit_jobs/helpers'
 require 'rabbit_jobs/configuration'
-require 'rabbit_jobs/error_mailer'
 
 require 'rabbit_jobs/consumer/job_consumer'
 require 'rabbit_jobs/job'

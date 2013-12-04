@@ -6,7 +6,6 @@ end
 
 require 'rr'
 require 'timecop'
-require 'action_mailer'
 
 require 'rabbit_jobs'
 require 'fixtures/jobs'
