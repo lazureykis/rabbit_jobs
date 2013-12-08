@@ -24,6 +24,15 @@ module RabbitJobs
       begin
         exchange_opts = Configuration::DEFAULT_MESSAGE_PARAMS.merge(ex || {})
         exchange_name = exchange_opts.delete(:name).to_s
+
+        exchange = connection.default_channel.exchange(exchange_name, passive: true)
+        exchange.on_return do |basic_deliver, properties, payload|
+          RJ.logger.error full_message: caller.join("\r\n"),
+            short_message: "AMQP ERROR: (#{basic_deliver[:reply_code]}) #{basic_deliver[:reply_text].to_s}. exchange: #{basic_deliver[:exchange]}, key: #{basic_deliver[:routing_key]}.",
+            _basic_deliver: basic_deliver.inspect, _properties: properties.inspect, _payload: payload.inspect
+          true
+        end
+
         unless connection.default_channel.basic_publish(payload, exchange_name, routing_key, exchange_opts).connection.connected?
           raise "Disconnected from #{RJ.config.server}. Connection status: #{connection.try(:status).inspect}"
         end
