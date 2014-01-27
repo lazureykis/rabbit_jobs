@@ -19,5 +19,5 @@ Gem::Specification.new do |gem|
   gem.add_dependency "bunny", "~> 1.0"
   gem.add_dependency "rake"
   gem.add_dependency "rufus-scheduler", "~> 2.0"
-  gem.add_dependency "rails", "~> 3.2"
+  gem.add_dependency "rails", ">= 3.0", "< 5.0"
 end
