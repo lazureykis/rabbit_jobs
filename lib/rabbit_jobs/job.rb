@@ -20,8 +20,8 @@ module RabbitJobs
         begin
           ret = nil
           execution_time = Benchmark.measure { ret = perform(*params) }
-          RabbitJobs.logger.info short_message: self.to_ruby_string, _execution_time: execution_time.to_s.strip
-        rescue
+          RabbitJobs.logger.info short_message: "Completed: #{self.to_ruby_string}", _execution_time: execution_time.to_s.strip
+        rescue ScriptError, StandardError
           log_job_error($!)
           run_on_error_hooks($!)
         end

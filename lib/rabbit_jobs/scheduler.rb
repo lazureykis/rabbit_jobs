@@ -48,8 +48,8 @@ module RabbitJobs
       klass_name = config[:class]
       params = [args].flatten
 
-      RabbitJobs.logger.info "publishing #{config} at #{Time.now}"
       RabbitJobs.publish_to(config[:queue], klass_name, *params)
+      RabbitJobs.logger.info "Published: #{config} at #{Time.now}"
     rescue
       RabbitJobs.logger.warn "Failed to publish #{klass_name}:\n #{$!}\n params = #{params.inspect}"
       RabbitJobs.logger.error $!
