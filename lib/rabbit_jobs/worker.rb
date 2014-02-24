@@ -98,7 +98,7 @@ module RabbitJobs
         begin
           @consumer.process_message(delivery_info, properties, payload)
           @processed_count += 1
-        rescue
+        rescue ScriptError, StandardError
           RabbitJobs.logger.error(short_message: $!.message,
             _payload: payload, _exception: $!.class, full_message: $!.backtrace.join("\r\n"))
         end
