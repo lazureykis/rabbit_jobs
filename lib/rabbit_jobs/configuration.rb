@@ -33,8 +33,6 @@ module RabbitJobs
   end
 
   class Configuration
-    include Helpers
-
     DEFAULT_EXCHANGE_PARAMS = {
       auto_delete: false,
       durable: true
@@ -123,7 +121,7 @@ module RabbitJobs
         self.send(m, yaml[m])
       end
       yaml['queues'].each do |name, params|
-        queue name, symbolize_keys!(params) || {}
+        queue name, params.symbolize_keys || {}
       end
     end
 

@@ -3,7 +3,6 @@ require 'benchmark'
 
 module RabbitJobs
   module Job
-    include RabbitJobs::Helpers
     extend self
 
     def self.included(base)
@@ -139,7 +138,7 @@ module RabbitJobs
     def self.parse(payload)
       begin
         encoded = JSON.parse(payload)
-        job_klass = constantize(encoded['class'])
+        job_klass = encoded['class'].to_s.constantize
         job = job_klass.new(*encoded['params'])
         job.opts = encoded['opts']
         job

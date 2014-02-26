@@ -22,7 +22,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "bunny", "~> 1.0"
   spec.add_dependency "rake"
   spec.add_dependency "rufus-scheduler", "~> 3.0"
-  spec.add_dependency "rails", ">= 3.2", "< 5.0"
+  spec.add_dependency "activesupport", "~> 4.0"
 
   spec.add_development_dependency "bundler"
   # spec.add_development_dependency "rake"

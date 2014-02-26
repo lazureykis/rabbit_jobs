@@ -1,4 +1,5 @@
 require 'rabbit_jobs'
+require 'rake'
 
 def rails_env
   $my_rails_env ||= defined?(Rails) ? Rails.env : (ENV['RAILS_ENV'] || 'development')
@@ -17,7 +18,7 @@ end
 
 namespace :rj do
   task :environment do
-    Rails.application.require_environment!
+    Rails.application.require_environment! if defined?(Rails)
   end
 
   desc "Start a Rabbit Jobs worker"

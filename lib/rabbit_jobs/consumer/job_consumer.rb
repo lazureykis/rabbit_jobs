@@ -2,8 +2,6 @@
 module RabbitJobs
   module Consumer
     class JobConsumer
-      include RabbitJobs::Helpers
-
       def process_message(delivery_info, properties, payload)
         job, *error_args = RJ::Job.parse(payload)
 
