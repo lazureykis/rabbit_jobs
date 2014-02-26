@@ -24,7 +24,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "rufus-scheduler", "~> 3.0"
   spec.add_dependency "rails", ">= 3.2", "< 5.0"
 
-  spec.add_development_dependency "bundler", "~> 1.5"
+  spec.add_development_dependency "bundler"
   # spec.add_development_dependency "rake"
   spec.add_development_dependency "timecop"
   spec.add_development_dependency "rspec"
