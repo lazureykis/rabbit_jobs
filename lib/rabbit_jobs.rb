@@ -7,6 +7,7 @@ require 'yaml'
 require 'active_support/core_ext/object/blank'
 require 'active_support/core_ext/hash'
 require 'active_support/core_ext/string/inflections'
+require 'active_support/core_ext/module/delegation'
 
 require 'rabbit_jobs/version'
 require 'rabbit_jobs/configuration'
