@@ -66,8 +66,8 @@ module RabbitJobs
 
         def connection
           unless settings[:connection]
-            settings[:connection] = Bunny.new(RabbitJobs.config.server)
-            settings[:connection].start
+            settings[:connection] = Bunny.new(RabbitJobs.config.server,
+              properties: Bunny::Session::DEFAULT_CLIENT_PROPERTIES.merge(product: "rj_scheduler #{Process.pid}")).start
           end
           settings[:connection]
         end

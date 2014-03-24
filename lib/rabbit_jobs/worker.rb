@@ -13,7 +13,8 @@ module RabbitJobs
     end
 
     def amqp_connection
-      Thread.current[:rj_worker_connection] ||= Bunny.new(RabbitJobs.config.server, automatically_recover: false).start
+      Thread.current[:rj_worker_connection] ||= Bunny.new(RabbitJobs.config.server, automatically_recover: false,
+        properties: Bunny::Session::DEFAULT_CLIENT_PROPERTIES.merge(product: "rj_worker #{Process.pid}")).start
     end
 
     def self.cleanup
