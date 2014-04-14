@@ -98,7 +98,7 @@ module RabbitJobs
       end
 
       def log_job_error(error)
-        RabbitJobs.logger.error(short_message: error.message,
+        RabbitJobs.logger.error(short_message: (error.message.presence || "rj_worker job error"),
           _job: self.to_ruby_string, _exception: error.class, full_message: error.backtrace.join("\r\n"))
 
         Airbrake.notify(error, session: {args: self.to_ruby_string}) if defined?(Airbrake)
