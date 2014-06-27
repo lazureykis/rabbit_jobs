@@ -1,19 +1,12 @@
 require 'rabbit_jobs/publisher/amqp'
 require 'rabbit_jobs/publisher/test'
+require 'rabbit_jobs/publisher/sync'
 
 module RabbitJobs
   class Publisher
     class << self
-
-      @publisher_type = Amqp
-
       def mode
-        case @publisher_type
-        when Amqp
-          :amqp
-        when Test
-          :test
-        end
+        publisher_type.class_name.underscore
       end
 
       def mode=(value)
@@ -22,6 +15,8 @@ module RabbitJobs
           Amqp
         when 'test'
           Test
+        when 'sync'
+          Sync
         else
           raise ArgumentError.new("value must be :amqp or :test. Passed: #{value.inspect}")
         end
@@ -34,10 +29,8 @@ module RabbitJobs
       private
 
       def publisher_type
-        @publisher_type
+        @publisher_type || Amqp
       end
     end
   end
 end
-
-RabbitJobs::Publisher.mode ||= :amqp
