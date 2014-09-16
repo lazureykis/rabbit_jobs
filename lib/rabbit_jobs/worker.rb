@@ -17,6 +17,10 @@ module RabbitJobs
         properties: Bunny::Session::DEFAULT_CLIENT_PROPERTIES.merge(product: "rj_worker #{Process.pid}")).start
     end
 
+    def amqp_channel
+      @amqp_channel ||= amqp_connection.create_channel
+    end
+
     def self.cleanup
       conn = Thread.current[:rj_worker_connection]
       conn.close if conn && conn.status != :not_connected
@@ -60,11 +64,10 @@ module RabbitJobs
       @processed_count = 0
 
       begin
-        amqp_channel = amqp_connection.create_channel
         amqp_channel.prefetch(1)
 
         queues.each do |routing_key|
-          consume_queue(amqp_channel, routing_key)
+          consume_queue(routing_key)
         end
 
         RJ.logger.info "Started."
@@ -110,7 +113,7 @@ module RabbitJobs
       end
     end
 
-    def consume_queue(amqp_channel, routing_key)
+    def consume_queue(routing_key)
       RJ.logger.info "Subscribing to #{routing_key}"
       routing_key = routing_key.to_sym
 
