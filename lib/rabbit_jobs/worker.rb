@@ -4,27 +4,14 @@ module RabbitJobs
   class Worker
     include MainLoop
 
+    delegate :amqp_connection, :consumer_channel, :amqp_cleanup, to: RabbitJobs
+
     attr_accessor :process_name
     attr_reader :consumer
 
     def consumer=(value)
       raise ArgumentError.new("value=#{value.inspect}") unless value.respond_to?(:process_message)
       @consumer = value
-    end
-
-    def amqp_connection
-      Thread.current[:rj_worker_connection] ||= Bunny.new(RabbitJobs.config.server, automatically_recover: false,
-        properties: Bunny::Session::DEFAULT_CLIENT_PROPERTIES.merge(product: "rj_worker #{Process.pid}")).start
-    end
-
-    def amqp_channel
-      @amqp_channel ||= amqp_connection.create_channel
-    end
-
-    def self.cleanup
-      conn = Thread.current[:rj_worker_connection]
-      conn.close if conn && conn.status != :not_connected
-      Thread.current[:rj_worker_connection] = nil
     end
 
     def queue_params(routing_key)
@@ -64,7 +51,7 @@ module RabbitJobs
       @processed_count = 0
 
       begin
-        amqp_channel.prefetch(1)
+        consumer_channel.prefetch(1)
 
         queues.each do |routing_key|
           consume_queue(routing_key)
@@ -117,16 +104,16 @@ module RabbitJobs
       RJ.logger.info "Subscribing to #{routing_key}"
       routing_key = routing_key.to_sym
 
-      queue = amqp_channel.queue(routing_key, queue_params(routing_key))
+      queue = consumer_channel.queue(routing_key, queue_params(routing_key))
 
       explicit_ack = !!queue_params(routing_key)[:ack]
 
       queue.subscribe(ack: explicit_ack) do |delivery_info, properties, payload|
         if consume_message(delivery_info, properties, payload)
-          amqp_channel.ack(delivery_info.delivery_tag) if explicit_ack
+          consumer_channel.ack(delivery_info.delivery_tag) if explicit_ack
         else
           requeue = false
-          amqp_channel.nack(delivery_info.delivery_tag, requeue) if explicit_ack
+          consumer_channel.nack(delivery_info.delivery_tag, requeue) if explicit_ack
         end
       end
     end

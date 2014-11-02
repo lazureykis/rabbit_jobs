@@ -11,6 +11,7 @@ require 'active_support/core_ext/module/delegation'
 
 require 'rabbit_jobs/version'
 require 'rabbit_jobs/configuration'
+require 'rabbit_jobs/amqp_transport'
 require 'rabbit_jobs/consumer/job_consumer'
 require 'rabbit_jobs/job'
 require 'rabbit_jobs/publisher'
@@ -20,6 +21,7 @@ require 'rabbit_jobs/scheduler'
 require 'rabbit_jobs/tasks'
 
 module RabbitJobs
+  extend AmqpTransport
   extend self
 
   def publish_to(routing_key, klass, *params)

@@ -5,10 +5,10 @@ module RabbitJobs
     # AMQP publisher implementation.
     class Amqp < Base
       class << self
+        delegate :amqp_cleanup, :amqp_connection, :publisher_channel, to: RabbitJobs
+
         def cleanup
-          conn = Thread.current[:rj_publisher_connection]
-          conn.close if conn && conn.status != :not_connected
-          Thread.current[:rj_publisher_connection] = nil
+          amqp_cleanup
         end
 
         def publish_to(routing_key, klass, *params)
@@ -26,7 +26,7 @@ module RabbitJobs
             exchange_opts = Configuration::DEFAULT_MESSAGE_PARAMS.merge(ex || {})
             exchange_name = exchange_opts.delete(:name).to_s
 
-            exchange = connection.default_channel.exchange(exchange_name, passive: true)
+            exchange = publisher_channel.exchange(exchange_name, passive: true)
             exchange.on_return do |basic_deliver, properties, returned_payload|
               RJ.logger.error full_message: caller.join("\r\n"),
                               short_message: "AMQP ERROR: (#{basic_deliver[:reply_code]}) " \
@@ -39,8 +39,8 @@ module RabbitJobs
               true
             end
 
-            connection.default_channel.basic_publish(payload, exchange_name, routing_key, exchange_opts)
-            unless connection.connected?
+            publisher_channel.basic_publish(payload, exchange_name, routing_key, exchange_opts)
+            unless amqp_connection.connected?
               fail "Disconnected from #{RJ.config.server}. Connection status: #{connection.try(:status).inspect}"
             end
           rescue
@@ -56,28 +56,12 @@ module RabbitJobs
 
           messages_count = 0
           routing_keys.map(&:to_sym).each do |routing_key|
-            queue = connection.default_channel.queue(routing_key, RabbitJobs.config[:queues][routing_key])
+            queue = publisher_channel.queue(routing_key, RabbitJobs.config[:queues][routing_key])
             messages_count += queue.status[:message_count].to_i
-            connection.default_channel.queue_purge(routing_key)
+            publisher_channel.queue_purge(routing_key)
           end
 
           messages_count
-        end
-
-        private
-
-        def settings
-          Thread.current[:rj_publisher] ||= {}
-        end
-
-        def connection
-          unless settings[:connection]
-            settings[:connection] = Bunny.new(
-              RabbitJobs.config.server,
-              properties: Bunny::Session::DEFAULT_CLIENT_PROPERTIES.merge(product: "rj_scheduler #{Process.pid}")
-            ).start
-          end
-          settings[:connection]
         end
       end
     end
