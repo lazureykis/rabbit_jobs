@@ -19,7 +19,7 @@ Gem::Specification.new do |spec|
   spec.version       = RabbitJobs::VERSION
   spec.license       = "MIT"
 
-  spec.add_dependency "bunny", "~> 1.0"
+  spec.add_dependency "bunny", "~> 1.6.0"
   spec.add_dependency "rake"
   spec.add_dependency "rufus-scheduler", "~> 3.0"
   spec.add_dependency "activesupport", "~> 4.0"
