@@ -2,17 +2,18 @@ require 'rabbit_jobs/publisher/base'
 
 module RabbitJobs
   class Publisher
+    # Publisher for testing.
+    # Stores passed messages to array.
     class Test < Base
       class << self
-
         def cleanup
           messages.clear
         end
 
         def publish_to(routing_key, klass, *params)
-          raise ArgumentError.new("klass=#{klass.inspect}") unless klass.is_a?(Class) || klass.is_a?(String)
+          fail ArgumentError, "klass=#{klass.inspect}" unless klass.is_a?(Class) || klass.is_a?(String)
           routing_key = routing_key.to_sym unless routing_key.is_a?(Symbol)
-          raise ArgumentError.new("routing_key=#{routing_key}") unless RabbitJobs.config[:queues][routing_key]
+          fail ArgumentError, "routing_key=#{routing_key}" unless RabbitJobs.config[:queues][routing_key]
 
           payload = Job.serialize(klass, *params)
           direct_publish_to(routing_key, payload)
@@ -25,7 +26,7 @@ module RabbitJobs
         end
 
         def purge_queue(*routing_keys)
-          raise ArgumentError unless routing_keys.present?
+          fail ArgumentError unless routing_keys.present?
 
           ret = messages.count
           messages.clear

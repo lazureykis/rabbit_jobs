@@ -2,9 +2,9 @@ require 'rabbit_jobs/publisher/base'
 
 module RabbitJobs
   class Publisher
+    # AMQP publisher implementation.
     class Amqp < Base
       class << self
-
         def cleanup
           conn = Thread.current[:rj_publisher_connection]
           conn.close if conn && conn.status != :not_connected
@@ -12,41 +12,47 @@ module RabbitJobs
         end
 
         def publish_to(routing_key, klass, *params)
-          raise ArgumentError.new("klass=#{klass.inspect}") unless klass.is_a?(Class) || klass.is_a?(String)
+          fail ArgumentError, "klass=#{klass.inspect}" unless klass.is_a?(Class) || klass.is_a?(String)
           routing_key = routing_key.to_sym unless routing_key.is_a?(Symbol)
-          raise ArgumentError.new("routing_key=#{routing_key}") unless RabbitJobs.config[:queues][routing_key]
+          fail ArgumentError, "routing_key=#{routing_key}" unless RabbitJobs.config[:queues][routing_key]
 
           payload = Job.serialize(klass, *params)
           direct_publish_to(routing_key, payload)
         end
 
         def direct_publish_to(routing_key, payload, ex = {})
-          ex = {name: ex.to_s} unless ex.is_a?(Hash)
+          ex = { name: ex.to_s } unless ex.is_a?(Hash)
           begin
             exchange_opts = Configuration::DEFAULT_MESSAGE_PARAMS.merge(ex || {})
             exchange_name = exchange_opts.delete(:name).to_s
 
             exchange = connection.default_channel.exchange(exchange_name, passive: true)
-            exchange.on_return do |basic_deliver, properties, payload|
+            exchange.on_return do |basic_deliver, properties, returned_payload|
               RJ.logger.error full_message: caller.join("\r\n"),
-                short_message: "AMQP ERROR: (#{basic_deliver[:reply_code]}) #{basic_deliver[:reply_text].to_s}. exchange: #{basic_deliver[:exchange]}, key: #{basic_deliver[:routing_key]}.",
-                _basic_deliver: basic_deliver.inspect, _properties: properties.inspect, _payload: payload.inspect
+                              short_message: "AMQP ERROR: (#{basic_deliver[:reply_code]}) " \
+                                             "#{basic_deliver[:reply_text]}. " \
+                                             "exchange: #{basic_deliver[:exchange]}, " \
+                                             "key: #{basic_deliver[:routing_key]}.",
+                              _basic_deliver: basic_deliver.inspect,
+                              _properties: properties.inspect,
+                              _payload: returned_payload.inspect
               true
             end
 
-            unless connection.default_channel.basic_publish(payload, exchange_name, routing_key, exchange_opts).connection.connected?
-              raise "Disconnected from #{RJ.config.server}. Connection status: #{connection.try(:status).inspect}"
+            connection.default_channel.basic_publish(payload, exchange_name, routing_key, exchange_opts)
+            unless connection.connected?
+              fail "Disconnected from #{RJ.config.server}. Connection status: #{connection.try(:status).inspect}"
             end
           rescue
-            RabbitJobs.logger.error $!.message
-            raise $!
+            RabbitJobs.logger.error $ERROR_INFO.message
+            raise $ERROR_INFO
           end
 
           true
         end
 
         def purge_queue(*routing_keys)
-          raise ArgumentError unless routing_keys.present?
+          fail ArgumentError unless routing_keys.present?
 
           messages_count = 0
           routing_keys.map(&:to_sym).each do |routing_key|
@@ -66,8 +72,10 @@ module RabbitJobs
 
         def connection
           unless settings[:connection]
-            settings[:connection] = Bunny.new(RabbitJobs.config.server,
-              properties: Bunny::Session::DEFAULT_CLIENT_PROPERTIES.merge(product: "rj_scheduler #{Process.pid}")).start
+            settings[:connection] = Bunny.new(
+              RabbitJobs.config.server,
+              properties: Bunny::Session::DEFAULT_CLIENT_PROPERTIES.merge(product: "rj_scheduler #{Process.pid}")
+            ).start
           end
           settings[:connection]
         end

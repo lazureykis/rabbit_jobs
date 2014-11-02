@@ -1,6 +1,4 @@
-# -*- encoding : utf-8 -*-
 module RabbitJobs
-
   extend self
 
   def configure
