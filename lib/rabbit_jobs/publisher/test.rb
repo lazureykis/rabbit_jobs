@@ -3,7 +3,7 @@ require 'rabbit_jobs/publisher/base'
 module RabbitJobs
   class Publisher
     # Publisher for testing.
-    # Stores passed messages to array.
+    # Stores AMQP messages to array.
     class Test < Base
       class << self
         def cleanup

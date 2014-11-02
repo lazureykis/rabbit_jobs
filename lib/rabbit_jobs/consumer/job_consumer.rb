@@ -1,8 +1,8 @@
-# -*- encoding : utf-8 -*-
 module RabbitJobs
   module Consumer
+    # Default consumer.
     class JobConsumer
-      def process_message(delivery_info, properties, payload)
+      def process_message(_delivery_info, _properties, payload)
         job, *error_args = RJ::Job.parse(payload)
 
         if job.is_a?(Symbol)
@@ -15,16 +15,6 @@ module RabbitJobs
           end
         end
         true
-      end
-
-      def log_airbrake(msg_or_exception, payload)
-        if defined?(Airbrake)
-          if msg_or_exception.is_a?(String)
-            Airbrake.notify(RuntimeError.new(msg_or_exception))
-          else
-            Airbrake.notify(msg_or_exception)
-          end
-        end
       end
 
       def report_error(error_type, *args)

@@ -1,35 +1,5 @@
 module RabbitJobs
-  extend self
-
-  def configure
-    @@configuration ||= Configuration.new
-    yield @@configuration if block_given?
-  end
-
-  def config
-    @@configuration ||= load_config
-  end
-
-  def load_config(config_file = nil)
-    @@configuration ||= nil
-
-    config_file ||= defined?(Rails) && Rails.respond_to?(:root) && Rails.root.join('config/rabbit_jobs.yml')
-    if config_file
-      if File.exists?(config_file)
-        @@configuration ||= Configuration.new
-        @@configuration.load_file(config_file)
-      end
-    end
-
-    unless @@configuration
-      self.configure do |c|
-        c.server "amqp://localhost"
-      end
-    end
-
-    @@configuration
-  end
-
+  # Configuration DSL.
   class Configuration
     DEFAULT_EXCHANGE_PARAMS = {
       auto_delete: false,
@@ -40,7 +10,7 @@ module RabbitJobs
       auto_delete: false,
       exclusive: false,
       durable: true,
-      ack: true
+      manual_ack: true
     }
 
     DEFAULT_MESSAGE_PARAMS = {
@@ -57,20 +27,14 @@ module RabbitJobs
       @data = {
         error_log: true,
         server: 'amqp://localhost',
-        queues: {}
+        queues: {
+          jobs: DEFAULT_QUEUE_PARAMS
+        }
       }
     end
 
     def [](name)
       @data[name]
-    end
-
-    def default_queue(value = nil)
-      if value
-        @default_queue = value.to_sym
-      else
-        @default_queue || RJ.config[:queues].keys.first || :jobs
-      end
     end
 
     def error_log
@@ -87,8 +51,8 @@ module RabbitJobs
     end
 
     def queue(name, params = {})
-      raise ArgumentError.new("name is #{name.inspect}") unless name && name.is_a?(String) && name != ""
-      raise ArgumentError.new("params is #{params.inspect}") unless params && params.is_a?(Hash)
+      fail ArgumentError, "name is #{name.inspect}" unless name && name.is_a?(String) && name != ''
+      fail ArgumentError, "params is #{params.inspect}" unless params && params.is_a?(Hash)
 
       name = name.downcase.to_sym
 
@@ -114,9 +78,9 @@ module RabbitJobs
     def convert_yaml_config(yaml)
       yaml = parse_environment(yaml)
 
-      @data = {queues: {}}
-      %w(server default_queue).each do |m|
-        self.send(m, yaml[m])
+      @data = { queues: {} }
+      %w(server).each do |m|
+        send(m, yaml[m])
       end
       yaml['queues'].each do |name, params|
         queue name, params.symbolize_keys || {}
@@ -126,9 +90,7 @@ module RabbitJobs
     private
 
     def parse_environment(yaml)
-      yaml['rabbit_jobs'] ||
-      (defined?(Rails) && yaml[Rails.env.to_s]) ||
-      yaml
+      yaml['rabbit_jobs'] || (defined?(Rails) && yaml[Rails.env.to_s]) || yaml
     end
   end
 end

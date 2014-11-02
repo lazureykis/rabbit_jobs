@@ -14,7 +14,7 @@ class MyCurrentJob
 end
 
 RJ.configure { |c|
-  c.queue "mandarin", durable: true, auto_delete: false, ack: true, arguments: {'x-ha-policy' => 'all'}
+  c.queue "mandarin", durable: true, auto_delete: false, manual_ack: true, arguments: {'x-ha-policy' => 'all'}
   c.server "amqp://localhost/rj"
 }
 

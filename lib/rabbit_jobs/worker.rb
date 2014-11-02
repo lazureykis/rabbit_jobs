@@ -106,9 +106,9 @@ module RabbitJobs
 
       queue = consumer_channel.queue(routing_key, queue_params(routing_key))
 
-      explicit_ack = !!queue_params(routing_key)[:ack]
+      explicit_ack = !!queue_params(routing_key)[:manual_ack]
 
-      queue.subscribe(ack: explicit_ack) do |delivery_info, properties, payload|
+      queue.subscribe(manual_ack: explicit_ack) do |delivery_info, properties, payload|
         if consume_message(delivery_info, properties, payload)
           consumer_channel.ack(delivery_info.delivery_tag) if explicit_ack
         else

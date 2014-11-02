@@ -6,9 +6,9 @@ require 'json'
 RabbitJobs.configure do |c|
   c.server "amqp://localhost/"
 
-  c.queue 'rabbit_jobs_test1', durable: true, auto_delete: false, ack: true, arguments: {'x-ha-policy' => 'all'}
-  c.queue 'rabbit_jobs_test2', durable: true, auto_delete: false, ack: true, arguments: {'x-ha-policy' => 'all'}
-  c.queue 'rabbit_jobs_test3', durable: true, auto_delete: false, ack: true, arguments: {'x-ha-policy' => 'all'}
+  c.queue 'rabbit_jobs_test1', durable: true, auto_delete: false, manual_ack: true, arguments: {'x-ha-policy' => 'all'}
+  c.queue 'rabbit_jobs_test2', durable: true, auto_delete: false, manual_ack: true, arguments: {'x-ha-policy' => 'all'}
+  c.queue 'rabbit_jobs_test3', durable: true, auto_delete: false, manual_ack: true, arguments: {'x-ha-policy' => 'all'}
 end
 
 puts JSON.pretty_generate(RabbitJobs.config.to_hash)

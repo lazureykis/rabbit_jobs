@@ -5,7 +5,7 @@ describe RabbitJobs::Worker do
   it 'should allow to publish jobs from worker' do
     RabbitJobs.configure do |c|
       c.server 'amqp://localhost/rj'
-      c.queue 'rspec_durable_queue', auto_delete: false, durable: true, ack: true
+      c.queue 'rspec_durable_queue', auto_delete: false, durable: true, manual_ack: true
     end
 
     RJ::Publisher.purge_queue('rspec_durable_queue')

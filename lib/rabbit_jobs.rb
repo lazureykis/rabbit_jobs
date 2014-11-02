@@ -20,58 +20,91 @@ require 'rabbit_jobs/worker'
 require 'rabbit_jobs/scheduler'
 require 'rabbit_jobs/tasks'
 
+# Public gem API.
 module RabbitJobs
   extend AmqpTransport
-  extend self
 
-  def publish_to(routing_key, klass, *params)
-    Publisher.publish_to(routing_key, klass, *params)
-  end
-
-  def direct_publish_to(routing_key, payload, ex = {})
-    Publisher.direct_publish_to(routing_key, payload, ex)
-  end
-
-  def purge_queue(*routing_keys)
-    Publisher.purge_queue(*routing_keys)
-  end
-
-  attr_writer :logger
-  def logger
-    unless @logger
-      @logger = Logger.new($stdout)
-      @logger.level = Logger::INFO
-      @logger.formatter = nil
-      @logger.progname = 'rj'
+  class << self
+    def publish_to(routing_key, klass, *params)
+      Publisher.publish_to(routing_key, klass, *params)
     end
-    @logger
-  end
 
-  def after_fork(&block)
-    raise unless block_given?
-    @_after_fork_callbacks ||= []
-    @_after_fork_callbacks << block
-  end
+    def direct_publish_to(routing_key, payload, ex = {})
+      Publisher.direct_publish_to(routing_key, payload, ex)
+    end
 
-  def _run_after_fork_callbacks
-    @_after_fork_callbacks ||= []
-    @_after_fork_callbacks.each { |callback|
-      callback.call
-    }
-  end
+    def purge_queue(*routing_keys)
+      Publisher.purge_queue(*routing_keys)
+    end
 
-  def before_process_message(&block)
-    raise unless block_given?
-    @before_process_message_callbacks ||= []
-    @before_process_message_callbacks << block
-  end
+    attr_writer :logger
+    def logger
+      unless @logger
+        @logger = Logger.new($stdout)
+        @logger.level = Logger::INFO
+        @logger.formatter = nil
+        @logger.progname = 'rj'
+      end
+      @logger
+    end
 
-  def run_before_process_message_callbacks
-    @before_process_message_callbacks ||= []
-    @before_process_message_callbacks.each { |callback|
-      return false unless callback.call
-    }
-    return true
+    def after_fork(&block)
+      raise unless block_given?
+      @_after_fork_callbacks ||= []
+      @_after_fork_callbacks << block
+    end
+
+    def _run_after_fork_callbacks
+      @_after_fork_callbacks ||= []
+      @_after_fork_callbacks.each { |callback|
+        callback.call
+      }
+    end
+
+    def before_process_message(&block)
+      raise unless block_given?
+      @before_process_message_callbacks ||= []
+      @before_process_message_callbacks << block
+    end
+
+    def run_before_process_message_callbacks
+      @before_process_message_callbacks ||= []
+      @before_process_message_callbacks.each { |callback|
+        return false unless callback.call
+      }
+
+      true
+    end
+
+    # Configuration
+    def configure
+      @configuration ||= Configuration.new
+      yield @configuration if block_given?
+    end
+
+    def config
+      @configuration ||= load_config
+    end
+
+    def load_config(config_file = nil)
+      @configuration ||= nil
+
+      config_file ||= defined?(Rails) && Rails.respond_to?(:root) && Rails.root.join('config/rabbit_jobs.yml')
+      if config_file
+        if File.exist?(config_file)
+          @configuration ||= Configuration.new
+          @configuration.load_file(config_file)
+        end
+      end
+
+      unless @configuration
+        configure do |c|
+          c.server 'amqp://localhost'
+        end
+      end
+
+      @configuration
+    end
   end
 end
 

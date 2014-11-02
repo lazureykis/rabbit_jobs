@@ -4,10 +4,10 @@ rabbit_jobs:
     durable_queue:
       durable: true
       auto_delete: false
-      ack: true
+      manual_ack: true
       arguments:
         x-ha-policy: all
     fast_queue:
       durable: false
       auto_delete: true
-      ack: false
+      manual_ack: false

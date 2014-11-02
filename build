@@ -1,9 +1,5 @@
 #!/usr/bin/env ruby
-# -*- coding: utf-8 -*-
 require 'fileutils'
 
-abort("rspec tests failed.") unless system("bundle install")
-abort("rspec tests failed.") unless system("COVERAGE=true && bundle exec rspec")
-
-coverage_dir = File.expand_path('../coverage', __FILE__)
-FileUtils.move(coverage_dir, ENV['CC_BUILD_ARTIFACTS']) if ENV['CC_BUILD_ARTIFACTS']
+abort('bundle install failed') unless system('bundle install')
+abort('rspec tests failed.') unless system('bundle exec rspec')
