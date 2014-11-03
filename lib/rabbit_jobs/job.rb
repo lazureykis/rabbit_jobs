@@ -2,25 +2,11 @@ require 'benchmark'
 
 module RabbitJobs
   module Job
-    # created_at
-    attr_accessor :opts
-    def initialize
-      self.opts = {}
-    end
-
-    def created_at
-      Time.at(opts[:created_at]) if opts[:created_at]
-    end
-
-    def expires?
-      self.class.expires_in.to_i > 0
-    end
+    attr_accessor :created_at
 
     def expired?
-      return false unless expires?
       exp_in = self.class.expires_in.to_i
-      created_at = opts['created_at'].to_i
-      return false if exp_in == 0 || created_at == 0
+      return false if exp_in == 0 || created_at == nil
 
       Time.now.to_i > created_at + exp_in
     end
@@ -62,12 +48,8 @@ module RabbitJobs
     end
 
     def to_ruby_string(*params)
-      rs = self.class.name
-      rs << params_string(*params)
-      return rs if opts.blank?
-
-      rs << ', opts: '
-      rs << opts.inspect
+      rs = self.class.name + params_string(*params)
+      rs << ", created_at: #{created_at}" if created_at
       rs
     end
 
@@ -94,7 +76,7 @@ module RabbitJobs
         encoded = JSON.parse(payload)
         job_klass = encoded['class'].to_s.constantize
         job = job_klass.new
-        job.opts = encoded['opts']
+        job.created_at = encoded['created_at']
         [job, encoded['params']]
       rescue NameError
         [:not_found, encoded['class']]
@@ -107,7 +89,7 @@ module RabbitJobs
       def serialize(klass_name, *params)
         {
           'class' => klass_name.to_s,
-          'opts' => {'created_at' => Time.now.to_i},
+          'created_at' => Time.now.to_i,
           'params' => params
         }.to_json
       end
