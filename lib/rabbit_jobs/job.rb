@@ -6,9 +6,35 @@ module RabbitJobs
 
     def expired?
       exp_in = self.class.expires_in.to_i
-      return false if exp_in == 0 || created_at == nil
+      return false if exp_in == 0 || created_at.nil?
 
       Time.now.to_i > created_at + exp_in
+    end
+
+    def to_ruby_string(*params)
+      rs = self.class.name + params_string(*params)
+      rs << ", created_at: #{created_at}" if created_at
+      rs
+    end
+
+    private
+
+    def params_string(*params)
+      if params.count > 0
+        "(#{params.map(&:to_s).join(', ')})"
+      else
+        ''
+      end
+    end
+
+    def log_job_error(error, *params)
+      RabbitJobs.logger.error(
+        short_message: (error.message.presence || 'rj_worker job error'),
+        _job: to_ruby_string,
+        _exception: error.class,
+        full_message: error.backtrace.join("\r\n"))
+
+      Airbrake.notify(error, session: { args: to_ruby_string(*params) }) if defined?(Airbrake)
     end
 
     def run_perform(*params)
@@ -47,30 +73,6 @@ module RabbitJobs
       end
     end
 
-    def to_ruby_string(*params)
-      rs = self.class.name + params_string(*params)
-      rs << ", created_at: #{created_at}" if created_at
-      rs
-    end
-
-    def params_string(*params)
-      if params.count > 0
-        "(#{params.map(&:to_s).join(', ')})"
-      else
-        ''
-      end
-    end
-
-    def log_job_error(error, *params)
-      RabbitJobs.logger.error(
-        short_message: (error.message.presence || 'rj_worker job error'),
-        _job: to_ruby_string,
-        _exception: error.class,
-        full_message: error.backtrace.join("\r\n"))
-
-      Airbrake.notify(error, session: { args: to_ruby_string(*params) }) if defined?(Airbrake)
-    end
-
     class << self
       def parse(payload)
         encoded = JSON.parse(payload)
@@ -98,8 +100,8 @@ module RabbitJobs
         base.extend(ClassMethods)
       end
 
+      # DSL method for jobs
       module ClassMethods
-        # DSL method for jobs
         def expires_in(seconds = nil)
           @expires_in = seconds.to_i if seconds
           @expires_in

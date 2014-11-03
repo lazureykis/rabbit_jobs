@@ -11,7 +11,7 @@ module RabbitJobs
           if job.expired?
             RJ.logger.warn "Job expired: #{job.to_ruby_string(*params)}"
           else
-            job.run_perform(*params)
+            job.send(:run_perform, *params)
           end
         end
         true
