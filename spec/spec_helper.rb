@@ -3,8 +3,10 @@ SimpleCov.start do
   add_filter 'spec' # ignore spec files
 end
 
-require 'codeclimate-test-reporter'
-CodeClimate::TestReporter.start
+if ENV['CC']
+  require 'codeclimate-test-reporter'
+  CodeClimate::TestReporter.start
+end
 
 require 'rr'
 require 'timecop'
