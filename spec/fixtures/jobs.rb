@@ -1,5 +1,3 @@
-# -*- encoding : utf-8 -*-
-
 class TestJob
   include RJ::Job
   def perform
@@ -16,7 +14,7 @@ end
 
 class JobWithExpire
   include RJ::Job
-  expires_in 60*60 # expires in 1 hour
+  expires_in 1.hour
   def perform
 
   end

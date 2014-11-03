@@ -3,15 +3,15 @@ module RabbitJobs
     # Default consumer.
     class JobConsumer
       def process_message(_delivery_info, _properties, payload)
-        job, *error_args = RJ::Job.parse(payload)
+        job, params = RJ::Job.parse(payload)
 
         if job.is_a?(Symbol)
-          report_error(job, *error_args)
+          report_error(job, *params)
         else
           if job.expired?
-            RJ.logger.warn "Job expired: #{job.to_ruby_string}"
+            RJ.logger.warn "Job expired: #{job.to_ruby_string(*params)}"
           else
-            job.run_perform
+            job.run_perform(*params)
           end
         end
         true
