@@ -67,6 +67,10 @@ module RabbitJobs
       @data[:queues].keys
     end
 
+    def queue?(routing_key)
+      routing_keys.include?(routing_key.to_sym)
+    end
+
     def load_file(filename)
       load_yaml(File.read(filename))
     end

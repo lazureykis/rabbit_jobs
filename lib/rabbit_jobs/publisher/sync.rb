@@ -18,6 +18,12 @@ module RabbitJobs
         end
 
         def purge_queue(*_routing_keys)
+          fail ArgumentError unless routing_keys.present?
+        end
+
+        def queue_status(routing_key)
+          check_queue_status_params(routing_key)
+          { message_count: 0, consumer_count: 0 }
         end
       end
     end

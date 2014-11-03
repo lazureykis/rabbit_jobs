@@ -32,14 +32,14 @@ module RabbitJobs
         def purge_queue(*routing_keys)
           fail ArgumentError unless routing_keys.present?
 
-          messages_count = 0
           routing_keys.map(&:to_sym).each do |routing_key|
-            queue = publisher_channel.queue(routing_key, RabbitJobs.config[:queues][routing_key])
-            messages_count += queue.status[:message_count].to_i
             publisher_channel.queue_purge(routing_key)
           end
+        end
 
-          messages_count
+        def queue_status(routing_key)
+          check_queue_status_params(routing_key)
+          publisher_channel.queue(routing_key, RabbitJobs.config[:queues][routing_key.to_sym]).status
         end
 
         private

@@ -14,6 +14,7 @@ describe RabbitJobs::Scheduler do
 
     RJ.config.queue 'default', RJ::Configuration::DEFAULT_QUEUE_PARAMS
     puts "messages queued: #{RJ.purge_queue('default')}"
-    RJ.purge_queue('default').should == 0
+    RJ.queue_status('default')[:message_count].to_i.should == 0
+    RJ.purge_queue('default')
   end
 end
