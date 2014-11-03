@@ -48,19 +48,6 @@ module RabbitJobs
       @logger
     end
 
-    def after_fork(&block)
-      raise unless block_given?
-      @_after_fork_callbacks ||= []
-      @_after_fork_callbacks << block
-    end
-
-    def _run_after_fork_callbacks
-      @_after_fork_callbacks ||= []
-      @_after_fork_callbacks.each { |callback|
-        callback.call
-      }
-    end
-
     def before_process_message(&block)
       fail unless block_given?
       @before_process_message_callbacks ||= []

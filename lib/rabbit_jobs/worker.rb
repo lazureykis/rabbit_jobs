@@ -70,8 +70,6 @@ module RabbitJobs
     end
 
     def startup
-      RJ._run_after_fork_callbacks
-
       $stdout.sync = true
 
       @shutdown = false
