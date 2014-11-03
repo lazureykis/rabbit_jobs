@@ -71,17 +71,6 @@ module RabbitJobs
       true
     end
 
-    def startup
-      $stdout.sync = true
-
-      @shutdown = false
-
-      Signal.trap('TERM') { shutdown }
-      Signal.trap('INT')  { shutdown! }
-
-      true
-    end
-
     private
 
     def consume_message(delivery_info, properties, payload)

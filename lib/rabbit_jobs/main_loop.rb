@@ -1,6 +1,17 @@
 module RabbitJobs
   # Main process loop.
   module MainLoop
+    def startup
+      $stdout.sync = true
+
+      @shutdown = false
+
+      Signal.trap('TERM') { shutdown }
+      Signal.trap('INT')  { shutdown! }
+
+      true
+    end
+
     def shutdown
       @shutdown = true
     end

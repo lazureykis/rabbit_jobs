@@ -79,19 +79,6 @@ module RabbitJobs
       true
     end
 
-    def startup
-      # Fix buffering so we can `rake rj:work > resque.log` and
-      # get output from the child in there.
-      $stdout.sync = true
-
-      @shutdown = false
-
-      Signal.trap('TERM') { shutdown }
-      Signal.trap('INT')  { shutdown! }
-
-      true
-    end
-
     def setup_job_schedule(name, config)
       interval_defined = false
       %w(cron every).each do |interval_type|
