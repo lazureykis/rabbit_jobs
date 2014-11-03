@@ -45,8 +45,8 @@ module RabbitJobs
         short_message: "Completed: #{to_ruby_string(*params)}",
         _execution_time: execution_time.to_s.strip)
     rescue ScriptError, StandardError
-      log_job_error($ERROR_INFO, *params)
-      run_on_error_hooks($ERROR_INFO, *params)
+      log_job_error($!, *params)
+      run_on_error_hooks($!, *params)
     end
 
     def run_on_error_hooks(error, *params)
@@ -69,7 +69,7 @@ module RabbitJobs
             proc.call(error, *params)
           end
         rescue
-          RJ.logger.error($ERROR_INFO)
+          RJ.logger.error($!)
         end
       end
     end
@@ -86,7 +86,7 @@ module RabbitJobs
       rescue JSON::ParserError
         [:parsing_error, payload]
       rescue
-        [:error, $ERROR_INFO, payload]
+        [:error, $!, payload]
       end
 
       def serialize(klass_name, *params)

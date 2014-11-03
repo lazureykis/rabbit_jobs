@@ -65,7 +65,7 @@ module RabbitJobs
           RJ.logger.info "Processed jobs: #{@processed_count}."
         end
       rescue
-        log_daemon_error($ERROR_INFO)
+        log_daemon_error($!)
       end
 
       true
@@ -91,10 +91,10 @@ module RabbitJobs
           @processed_count += 1
         rescue ScriptError, StandardError
           RabbitJobs.logger.error(
-            short_message: $ERROR_INFO.message,
+            short_message: $!.message,
             _payload: payload,
-            _exception: $ERROR_INFO.class,
-            full_message: $ERROR_INFO.backtrace.join("\r\n"))
+            _exception: $!.class,
+            full_message: $!.backtrace.join("\r\n"))
         end
         true
       else

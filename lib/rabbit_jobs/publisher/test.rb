@@ -11,12 +11,10 @@ module RabbitJobs
         end
 
         def publish_to(routing_key, klass, *params)
-          fail ArgumentError, "klass=#{klass.inspect}" unless klass.is_a?(Class) || klass.is_a?(String)
-          routing_key = routing_key.to_sym unless routing_key.is_a?(Symbol)
-          fail ArgumentError, "routing_key=#{routing_key}" unless RabbitJobs.config[:queues][routing_key]
+          check_amqp_publishing_params(routing_key, klass)
 
           payload = Job.serialize(klass, *params)
-          direct_publish_to(routing_key, payload)
+          direct_publish_to(routing_key.to_sym, payload)
         end
 
         def direct_publish_to(routing_key, payload, ex = {})

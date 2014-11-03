@@ -44,8 +44,8 @@ module RabbitJobs
       RabbitJobs.publish_to(config[:queue], klass_name, *params)
       RabbitJobs.logger.info "Published: #{config} at #{Time.now}"
     rescue
-      RabbitJobs.logger.warn "Failed to publish #{klass_name}:\n #{$ERROR_INFO}\n params = #{params.inspect}"
-      RabbitJobs.logger.error $ERROR_INFO
+      RabbitJobs.logger.warn "Failed to publish #{klass_name}:\n #{$!}\n params = #{params.inspect}"
+      RabbitJobs.logger.error $!
     end
 
     def rufus_scheduler
@@ -73,7 +73,7 @@ module RabbitJobs
 
         return main_loop
       rescue
-        log_daemon_error($ERROR_INFO)
+        log_daemon_error($!)
       end
 
       true
