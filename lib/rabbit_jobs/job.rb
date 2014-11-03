@@ -1,6 +1,7 @@
 require 'benchmark'
 
 module RabbitJobs
+  # Module to include in client jobs.
   module Job
     attr_accessor :created_at
 
@@ -110,13 +111,15 @@ module RabbitJobs
         def on_error(*hooks)
           @rj_on_error_hooks ||= []
           hooks.each do |proc_or_symbol|
-            raise ArgumentError.new("Pass proc or symbol to on_error hook") unless proc_or_symbol && ( proc_or_symbol.is_a?(Proc) || proc_or_symbol.is_a?(Symbol) )
+            unless proc_or_symbol.is_a?(Proc) || proc_or_symbol.is_a?(Symbol)
+              fail ArgumentError.new, 'Pass proc or symbol to on_error hook'
+            end
             @rj_on_error_hooks << proc_or_symbol
           end
         end
 
         def queue(routing_key)
-          raise ArgumentError.new("routing_key is nil") unless routing_key.present?
+          fail ArgumentError, 'routing_key is blank' if routing_key.blank?
           @rj_queue = routing_key.to_sym
         end
 

@@ -1,6 +1,6 @@
 module RabbitJobs
   module Consumer
-    # Default consumer.
+    # Default job consumer.
     class JobConsumer
       def process_message(_delivery_info, _properties, payload)
         job, params = RJ::Job.parse(payload)

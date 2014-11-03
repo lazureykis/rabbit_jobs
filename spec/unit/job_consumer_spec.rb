@@ -1,4 +1,3 @@
-# -*- encoding : utf-8 -*-
 require 'spec_helper'
 
 describe RabbitJobs::Consumer::JobConsumer do
@@ -11,11 +10,13 @@ describe RabbitJobs::Consumer::JobConsumer do
       mock(RJ::Job).parse(payload) { job }
       consumer.process_message(:delivery_info, :properties, payload)
     end
+
     it 'reports parsing errors' do
-      payload = "some bad json data"
+      payload = 'some bad json data'
       mock(consumer).report_error(:parsing_error, payload)
       consumer.process_message(:delivery_info, :properties, payload).should == true
     end
+
     it 'skips expired jobs' do
       payload = RJ::Job.serialize(TestJob)
       job
@@ -35,22 +36,22 @@ describe RabbitJobs::Consumer::JobConsumer do
   end
 
   describe '#report_error' do
-    it "accepts error type :not_found" do
-      lambda { consumer.report_error(:not_found, 'klass_name') }.should_not raise_error
+    it 'accepts error type :not_found' do
+      -> { consumer.report_error(:not_found, 'klass_name') }.should_not raise_error
     end
 
-    it "accepts error type :parsing_error" do
-      lambda { consumer.report_error(:parsing_error, 'payload data') }.should_not raise_error
+    it 'accepts error type :parsing_error' do
+      -> { consumer.report_error(:parsing_error, 'payload data') }.should_not raise_error
     end
 
-    it "accepts error type :error" do
+    it 'accepts error type :error' do
       exception = nil
       begin
-        raise 'testing'
-      rescue Exception => e
+        fail 'testing'
+      rescue RuntimeError => e
         exception = e
       end
-      lambda { consumer.report_error(:error, exception, 'payload data') }.should_not raise_error
+      -> { consumer.report_error(:error, exception, 'payload data') }.should_not raise_error
     end
   end
 end

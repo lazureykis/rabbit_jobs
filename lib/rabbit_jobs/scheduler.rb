@@ -1,5 +1,5 @@
-# -*- encoding : utf-8 -*-
 module RabbitJobs
+  # Scheduler daemon.
   class Scheduler
     include MainLoop
 
@@ -10,21 +10,12 @@ module RabbitJobs
       @schedule = HashWithIndifferentAccess.new(value)
     end
 
-    def load_default_schedule
-      if defined?(Rails)
-        file = Rails.root.join('config/schedule.yml')
-        if file.file?
-          @schedule = HashWithIndifferentAccess.new(YAML.load_file(file))
-        end
-      end
-    end
-
     # Pulls the schedule from Resque.schedule and loads it into the
     # rufus scheduler instance
     def load_schedule!
       @schedule ||= load_default_schedule
 
-      raise "You should setup a schedule or place it in config/schedule.yml" unless schedule
+      fail 'You should setup a schedule or place it in config/schedule.yml' unless schedule
 
       schedule.each do |name, config|
         # If rails_env is set in the config, enforce ENV['RAILS_ENV'] as
@@ -39,7 +30,9 @@ module RabbitJobs
 
     # Returns true if the given schedule config hash matches the current ENV['RAILS_ENV']
     def rails_env_matches?(config)
-      config['rails_env'] && ENV['RAILS_ENV'] && config['rails_env'].gsub(/\s/,'').split(',').include?(ENV['RAILS_ENV'])
+      config['rails_env'] &&
+        ENV['RAILS_ENV'] &&
+        config['rails_env'].gsub(/\s/, '').split(',').include?(ENV['RAILS_ENV'])
     end
 
     # Publish a job based on a config hash
@@ -51,8 +44,8 @@ module RabbitJobs
       RabbitJobs.publish_to(config[:queue], klass_name, *params)
       RabbitJobs.logger.info "Published: #{config} at #{Time.now}"
     rescue
-      RabbitJobs.logger.warn "Failed to publish #{klass_name}:\n #{$!}\n params = #{params.inspect}"
-      RabbitJobs.logger.error $!
+      RabbitJobs.logger.warn "Failed to publish #{klass_name}:\n #{$ERROR_INFO}\n params = #{params.inspect}"
+      RabbitJobs.logger.error $ERROR_INFO
     end
 
     def rufus_scheduler
@@ -72,15 +65,15 @@ module RabbitJobs
       begin
         return false unless startup
 
-        $0 = self.process_name || "rj_scheduler"
+        $0 = process_name || 'rj_scheduler'
 
-        RabbitJobs.logger.info "Started."
+        RabbitJobs.logger.info 'Started.'
 
         load_schedule!
 
         return main_loop
       rescue
-        log_daemon_error($!)
+        log_daemon_error($ERROR_INFO)
       end
 
       true
@@ -102,17 +95,23 @@ module RabbitJobs
     def setup_job_schedule(name, config)
       interval_defined = false
       %w(cron every).each do |interval_type|
-        if config[interval_type].present?
-          RabbitJobs.logger.info "queueing #{config['class']} (#{name})"
-          rufus_scheduler.send(interval_type, config[interval_type], blocking: true) do
-            publish_from_config(config)
-          end
-          interval_defined = true
+        next if config[interval_type].blank?
+        RabbitJobs.logger.info "queueing #{config['class']} (#{name})"
+        rufus_scheduler.send(interval_type, config[interval_type], blocking: true) do
+          publish_from_config(config)
         end
+        interval_defined = true
       end
-      unless interval_defined
-        RabbitJobs.logger.warn "no #{interval_types.join(' / ')} found for #{config['class']} (#{name}) - skipping"
-      end
+      return if interval_defined
+
+      RabbitJobs.logger.warn "no #{interval_types.join(' / ')} found for #{config['class']} (#{name}) - skipping"
+    end
+
+    def load_default_schedule
+      return unless defined?(Rails)
+      file = Rails.root.join('config/schedule.yml')
+      return unless file.file?
+      @schedule = HashWithIndifferentAccess.new(YAML.load_file(file))
     end
   end
 end

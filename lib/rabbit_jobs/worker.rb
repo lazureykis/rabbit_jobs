@@ -1,6 +1,5 @@
-# -*- encoding : utf-8 -*-
-
 module RabbitJobs
+  # Worker daemon.
   class Worker
     include MainLoop
 
@@ -10,7 +9,9 @@ module RabbitJobs
     attr_reader :consumer
 
     def consumer=(value)
-      raise ArgumentError.new("value=#{value.inspect}") unless value.respond_to?(:process_message)
+      unless value.respond_to?(:process_message)
+        fail ArgumentError, 'value must implement #process_message'
+      end
       @consumer = value
     end
 
@@ -34,7 +35,8 @@ module RabbitJobs
       if @queues == ['*'] || @queues.empty?
         @queues = RabbitJobs.config.routing_keys
       end
-      raise "Cannot initialize worker without queues." if @queues.empty?
+
+      fail 'Cannot initialize worker without queues.' if @queues.empty?
     end
 
     def queues

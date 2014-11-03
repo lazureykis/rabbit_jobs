@@ -1,4 +1,3 @@
-# -*- encoding : utf-8 -*-
 require 'logger'
 require 'json'
 require 'bunny'

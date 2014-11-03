@@ -2,15 +2,15 @@ require 'rabbit_jobs'
 require 'rake'
 
 def rails_env
-  $my_rails_env ||= defined?(Rails) ? Rails.env : (ENV['RAILS_ENV'] || 'development')
+  defined?(Rails) ? Rails.env : (ENV['RAILS_ENV'] || 'development')
 end
 
 def app_root
-  $my_rails_root ||= Pathname.new(ENV['RAILS_ROOT'] || Rails.root)
+  Pathname.new(ENV['RAILS_ROOT'] || Rails.root)
 end
 
 def make_dirs
-  ["log", "tmp", "tmp/pids"].each do |subdir|
+  %w(log tmp tmp/pids).each do |subdir|
     dir = app_root.join(subdir)
     Dir.mkdir(dir) unless File.directory?(dir)
   end
@@ -21,9 +21,9 @@ namespace :rj do
     Rails.application.require_environment! if defined?(Rails)
   end
 
-  desc "Start a Rabbit Jobs worker"
-  task :worker => :environment do
-    queues = (ENV['QUEUES'] || ENV['QUEUE'] || "").split(',')
+  desc 'Starts a Rabbit Jobs worker'
+  task worker: :environment do
+    queues = (ENV['QUEUES'] || ENV['QUEUE'] || '').split(',')
     make_dirs
     worker = RJ::Worker.new(*queues)
     worker.consumer = RJ::Consumer.const_get(ENV['CONSUMER'].classify).new if ENV['CONSUMER']
@@ -31,7 +31,7 @@ namespace :rj do
     exit(worker.work)
   end
 
-  desc "Start a Rabbit Jobs scheduler"
+  desc 'Starts a Rabbit Jobs scheduler'
   task :scheduler do
     make_dirs
     scheduler = RabbitJobs::Scheduler.new
