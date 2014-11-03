@@ -1,4 +1,3 @@
-# -*- encoding : utf-8 -*-
 module RabbitJobs
   # Main process loop.
   module MainLoop
@@ -10,37 +9,28 @@ module RabbitJobs
       shutdown
     end
 
-    def main_loop(time)
+    def main_loop
       loop do
-        sleep 1
-        if time > 0
-          time -= 1
-          if time == 0
-            shutdown
-          end
-        end
+        sleep 0.5
+        next unless @shutdown
 
-        if @shutdown
-          RabbitJobs.logger.info "Stopping."
-          if defined?(amqp_connection) # in worker only
-            amqp_connection.stop
-            consumer_channel.work_pool.join
-            amqp_cleanup
-          end
-          yield if block_given?
-          return true
+        RabbitJobs.logger.info 'Stopping.'
+        if defined?(amqp_connection) # in worker only
+          amqp_connection.stop
+          consumer_channel.work_pool.join
+          amqp_cleanup
         end
+        yield if block_given?
+        return true
       end
     end
 
     def log_daemon_error(error)
-      if RabbitJobs.logger
-        begin
-          RabbitJobs.logger.fatal error
-        ensure
-          abort(error.message)
-        end
-      end
+      return unless RabbitJobs.logger
+
+      RabbitJobs.logger.fatal error
+    ensure
+      abort(error.message)
     end
   end
 end

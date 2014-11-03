@@ -42,11 +42,11 @@ module RabbitJobs
     end
 
     # Subscribes to queue and working on jobs
-    def work(time = -1)
+    def work
       return false unless startup
       @consumer ||= RJ::Consumer::JobConsumer.new
 
-      $0 = self.process_name || "rj_worker (#{queues.join(', ')})"
+      $0 = process_name || "rj_worker (#{queues.join(', ')})"
 
       @processed_count = 0
 
@@ -57,20 +57,20 @@ module RabbitJobs
           consume_queue(routing_key)
         end
 
-        RJ.logger.info "Started."
+        RJ.logger.info 'Started.'
 
-        return main_loop(time) {
+        return main_loop do
           RJ.logger.info "Processed jobs: #{@processed_count}."
-        }
+        end
       rescue
-        log_daemon_error($!)
+        log_daemon_error($ERROR_INFO)
       end
 
       true
     end
 
     def startup
-      count = RJ._run_after_fork_callbacks
+      RJ._run_after_fork_callbacks
 
       $stdout.sync = true
 
@@ -85,13 +85,16 @@ module RabbitJobs
     private
 
     def consume_message(delivery_info, properties, payload)
-      if (RJ.run_before_process_message_callbacks rescue nil)
+      if RJ.run_before_process_message_callbacks
         begin
           @consumer.process_message(delivery_info, properties, payload)
           @processed_count += 1
         rescue ScriptError, StandardError
-          RabbitJobs.logger.error(short_message: $!.message,
-            _payload: payload, _exception: $!.class, full_message: $!.backtrace.join("\r\n"))
+          RabbitJobs.logger.error(
+            short_message: $ERROR_INFO.message,
+            _payload: payload,
+            _exception: $ERROR_INFO.class,
+            full_message: $ERROR_INFO.backtrace.join("\r\n"))
         end
         true
       else
@@ -106,7 +109,7 @@ module RabbitJobs
 
       queue = consumer_channel.queue(routing_key, queue_params(routing_key))
 
-      explicit_ack = !!queue_params(routing_key)[:manual_ack]
+      explicit_ack = queue_params(routing_key)[:manual_ack].present?
 
       queue.subscribe(manual_ack: explicit_ack) do |delivery_info, properties, payload|
         if consume_message(delivery_info, properties, payload)

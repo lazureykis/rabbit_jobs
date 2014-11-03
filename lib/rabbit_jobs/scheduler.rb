@@ -68,7 +68,7 @@ module RabbitJobs
     end
 
     # Subscribes to channel and working on jobs
-    def work(time = 0)
+    def work
       begin
         return false unless startup
 
@@ -78,7 +78,7 @@ module RabbitJobs
 
         load_schedule!
 
-        return main_loop(time)
+        return main_loop
       rescue
         log_daemon_error($!)
       end

@@ -13,6 +13,13 @@ describe RabbitJobs::Worker do
 
     worker = RabbitJobs::Worker.new
     # mock(RJ).publish_to(:rspec_durable_queue, JobWithPublish, 5)
-    worker.work(3) # work for 1 second
+
+    # stop worker after 3 seconds
+    Thread.start do
+      sleep 3
+      worker.shutdown
+    end
+
+    worker.work
   end
 end

@@ -62,18 +62,19 @@ module RabbitJobs
     end
 
     def before_process_message(&block)
-      raise unless block_given?
+      fail unless block_given?
       @before_process_message_callbacks ||= []
       @before_process_message_callbacks << block
     end
 
     def run_before_process_message_callbacks
       @before_process_message_callbacks ||= []
-      @before_process_message_callbacks.each { |callback|
+      @before_process_message_callbacks.each do |callback|
         return false unless callback.call
-      }
-
+      end
       true
+    rescue
+      false
     end
 
     # Configuration
