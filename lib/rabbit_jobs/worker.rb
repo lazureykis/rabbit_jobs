@@ -1,9 +1,11 @@
+require 'rabbit_jobs/amqp_transport'
+
 module RabbitJobs
   # Worker daemon.
   class Worker
     include MainLoop
 
-    delegate :amqp_connection, :consumer_channel, :amqp_cleanup, to: RabbitJobs
+    delegate :amqp_connection, :consumer_channel, :amqp_cleanup, to: RabbitJobs::AmqpTransport
 
     attr_accessor :process_name
     attr_reader :consumer

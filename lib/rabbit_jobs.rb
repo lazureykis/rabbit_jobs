@@ -21,8 +21,6 @@ require 'rabbit_jobs/tasks'
 
 # Public gem API.
 module RabbitJobs
-  extend AmqpTransport
-
   class << self
     delegate :publish_to, :direct_publish_to, :purge_queue, :queue_status, to: Publisher
 

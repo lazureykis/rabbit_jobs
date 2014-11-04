@@ -1,11 +1,12 @@
 require 'rabbit_jobs/publisher/base'
+require 'rabbit_jobs/amqp_transport'
 
 module RabbitJobs
   class Publisher
     # AMQP publisher implementation.
     class Amqp < Base
       class << self
-        delegate :amqp_cleanup, :amqp_connection, :publisher_channel, to: RabbitJobs
+        delegate :amqp_cleanup, :amqp_connection, :publisher_channel, to: RabbitJobs::AmqpTransport
 
         def cleanup
           amqp_cleanup
