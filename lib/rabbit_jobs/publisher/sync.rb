@@ -17,7 +17,7 @@ module RabbitJobs
           klass.perform(*params)
         end
 
-        def purge_queue(*_routing_keys)
+        def purge_queue(*routing_keys)
           fail ArgumentError unless routing_keys.present?
         end
 
