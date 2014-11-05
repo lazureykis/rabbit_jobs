@@ -21,10 +21,11 @@ module RabbitJobs
       def amqp_cleanup
         conn = @amqp_connection
         @amqp_connection = nil
+
+        conn.stop if conn && conn.status != :not_connected
+        @consumer_channel.work_pool.join if @consumer_channel
         @publisher_channel = nil
         @consumer_channel = nil
-
-        conn.close if conn && conn.status != :not_connected
         true
       end
     end

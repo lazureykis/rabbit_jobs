@@ -99,6 +99,7 @@ module RabbitJobs
 
       def included(base)
         base.extend(ClassMethods)
+        base.queue(:jobs)
       end
 
       # DSL method for jobs
@@ -124,7 +125,7 @@ module RabbitJobs
         end
 
         def perform_async(*args)
-          RJ::Publisher.publish_to(@rj_queue || RJ.config.default_queue, self, *args)
+          RJ::Publisher.publish_to(@rj_queue, self, *args)
         end
 
         def perform(*params)

@@ -27,8 +27,6 @@ module RabbitJobs
 
         RabbitJobs.logger.info 'Stopping.'
         if defined?(amqp_connection) # in worker only
-          amqp_connection.stop
-          consumer_channel.work_pool.join
           amqp_cleanup
         end
         yield if block_given?
