@@ -43,14 +43,18 @@ end
 
 class JobWithErrorHook
   include RJ::Job
-  on_error :first_hook, lambda { puts "second hook" }, :last_hook
+  on_error :first_hook, -> { puts 'second hook' }, :last_hook
 
   def first_hook(error)
-    puts 'first hook'
+    puts "first hook, error: #{error}"
   end
 
   def last_hook(error)
-    puts 'last hook'
+    puts "last hook, error: #{error}"
+  end
+
+  def some_other_method
+    puts 'some_other_method'
   end
 
   def perform

@@ -50,9 +50,9 @@ module RabbitJobs
     end
 
     def run_on_error_hooks(error, *params)
-      return unless @@rj_on_error_hooks.try(:present?)
+      return unless self.class.on_error_hooks.try(:present?)
 
-      @@rj_on_error_hooks.each do |proc_or_symbol|
+      self.class.on_error_hooks.each do |proc_or_symbol|
         proc = if proc_or_symbol.is_a?(Symbol)
                  method(proc_or_symbol)
                else
@@ -109,13 +109,15 @@ module RabbitJobs
           @expires_in
         end
 
+        attr_reader :on_error_hooks
+
         def on_error(*hooks)
-          @rj_on_error_hooks ||= []
+          @on_error_hooks ||= []
           hooks.each do |proc_or_symbol|
             unless proc_or_symbol.is_a?(Proc) || proc_or_symbol.is_a?(Symbol)
               fail ArgumentError.new, 'Pass proc or symbol to on_error hook'
             end
-            @rj_on_error_hooks << proc_or_symbol
+            @on_error_hooks << proc_or_symbol
           end
         end
 

@@ -29,5 +29,18 @@ describe RabbitJobs::Job do
       job.created_at = (Time.now).to_i
       job.expired?.should == false
     end
+
+    context :run_perform do
+      it 'runs on_error hooks when error occured in #perform' do
+        job = JobWithErrorHook.new
+        mock(job).first_hook.with_any_args
+        mock(job).last_hook.with_any_args
+        mock(RabbitJobs.logger).error.with_any_args
+        dont_allow(job).some_other_method
+        job.send :run_perform
+      end
+
+      it 'measures and logs execution time'
+    end
   end
 end
